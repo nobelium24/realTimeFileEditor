@@ -3,6 +3,7 @@ module realTimeEditor
 go 1.24.4
 
 require (
+	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/google/uuid v1.6.0
 	gorm.io/gorm v1.30.0
 )
