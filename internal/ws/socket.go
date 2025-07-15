@@ -75,7 +75,7 @@ func (sh *SocketHandler) RegisterEvents(server *socketio.Server) {
 		ctx := s.Context().(map[string]string)
 		userId := ctx["userId"]
 
-		docId, ok := data["documentId"].(string)
+		docId, ok := data["ID"].(string)
 		if !ok || docId == "" {
 			s.Emit("error", "Invalid document ID")
 			return
@@ -119,6 +119,14 @@ func (sh *SocketHandler) RegisterEvents(server *socketio.Server) {
 			s.Emit("error", "Internal server error")
 			return
 		}
+
+		//TODO: Address this later.
+		// type EditPayload struct {
+		// 	DocumentID string          `json:"documentId"`
+		// 	Content    string          `json:"content"`          // updated content or diff/patch
+		// 	Version    int             `json:"version"`          // optional
+		// 	Cursor     *CursorPosition `json:"cursor,omitempty"` // optional
+		// }
 
 		if err := sh.DocumentRepository.Update(&document, docUUID); err != nil {
 			log.Println("Failed to update document:", err)
