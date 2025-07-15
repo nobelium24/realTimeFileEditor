@@ -3,7 +3,7 @@ package repositories
 import (
 	"realTimeEditor/internal/model"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 

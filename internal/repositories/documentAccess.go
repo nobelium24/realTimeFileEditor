@@ -1,11 +1,12 @@
 package repositories
 
 import (
+	"errors"
 	"fmt"
 	"realTimeEditor/internal/model"
 	"time"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -55,4 +56,16 @@ func (d *DocumentAccessRepository) Update(documentAccess *model.DocumentAccess, 
 
 func (d *DocumentAccessRepository) Delete(documentAccess *model.DocumentAccess, id uuid.UUID) error {
 	return d.db.Delete(documentAccess, "id = ?", id).Error
+}
+
+func (d *DocumentAccessRepository) HasEditAccess(userId, docId string) (bool, error) {
+	var access model.DocumentAccess
+	err := d.db.Where("collaborator_id = ? AND document_id = ? AND role = ?", userId, docId, model.Edit).First(&access).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }

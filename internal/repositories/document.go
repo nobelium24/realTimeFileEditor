@@ -6,7 +6,7 @@ import (
 	"realTimeEditor/internal/model"
 	"time"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
