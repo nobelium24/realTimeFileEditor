@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Welcome to fiyifit</title>
+    <style>
+        * {
+            -ms-text-size-adjust: 100%;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            margin: 0;
+            padding: 0;
+            width: 100% !important;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+
+        .email-header {
+            background-color: #4E3485;
+            padding: 20px;
+            padding-block: 10px;
+            align-items: center;
+            justify-content: center;
+            display: flex;
+            gap: 10px;
+        }
+
+        .email-body {
+            padding: 30px;
+            background-color: #f9f9f9;
+        }
+
+        .email-footer {
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666666;
+            background-color: #f1f1f1;
+        }
+
+        .logo {
+            width: 60px;
+            height: auto;
+            display: block;
+        }
+
+        .header-text {
+            color: #fff;
+            font-size: 30px;
+            margin: 0;
+        }
+
+        .info-box {
+            background-color: #ffffff;
+            border-left: 4px solid #E3D6FF;
+            padding: 15px;
+            padding-block: 8px;
+            margin: 20px 0;
+        }
+
+        a {
+            color: #4E3485;
+            text-decoration: underline;
+        }
+
+        @media only screen and (max-width: 600px) {
+            .email-body {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="email-container">
+        <div class="email-header">
+            <img src="https://res.cloudinary.com/djqokg2kh/image/upload/v1743772890/zynsxy22g6lhtcmuakif.jpg" alt="fiyifit" class="logo"
+                style="width: 60px; height: auto;">
+            <div style="background-color: #fff; width: 1px; height: 35px;"></div>
+            <h1 class="header-text" style="color: #fff; font-size: 30px; margin: 0;">fiyifit</h1>
+        </div>
+
+        <div class="email-body">
+            <h2>Welcome to fiyifit!</h2>
+            <p>Hello {{.FullName}},</p>
+            <div class="info-box"
+                style="background-color: #ffffff; border-left: 4px solid #E3D6FF; padding: 15px; padding-block: 8px; margin: 20px 0;">
+                <p>Thank you for joining fiyifit. We're excited to have you on board.</p>
+            </div>
+            <p>Best regards,<br>The fiyifit Team</p>
+        </div>
+
+        <div class="email-footer">
+            <p>&copy; {{.Year}} fiyifit. All rights reserved.</p>
+            <p>No 2 Adebara str, Odo-ona Elewe, Ibadan.</p>
+            <p>
+                <a href="https://www.fiyifit.com/privacy" style="color: #4E3485;">Privacy Policy</a> |
+                <a href="https://www.fiyifit.com/terms" style="color: #4E3485;">Terms of Service</a>
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>
