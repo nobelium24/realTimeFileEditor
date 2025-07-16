@@ -18,7 +18,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserHandler struct {
+type UserController struct {
 	UserRepository           repositories.UserRepository
 	ForgotPasswordRepository repositories.ForgotPasswordRepository
 }
@@ -26,8 +26,8 @@ type UserHandler struct {
 func NewUserHandler(
 	userRepository *repositories.UserRepository,
 	forgotPasswordRepository *repositories.ForgotPasswordRepository,
-) *UserHandler {
-	return &UserHandler{
+) *UserController {
+	return &UserController{
 		UserRepository:           *userRepository,
 		ForgotPasswordRepository: *forgotPasswordRepository,
 	}
@@ -40,7 +40,7 @@ var (
 	codeRegex     = regexp.MustCompile(`^[A-Za-z0-9]{6}$`)
 )
 
-func (u *UserHandler) Create(c *gin.Context) {
+func (u *UserController) Create(c *gin.Context) {
 	var user model.User
 	if err := c.ShouldBindJSON(&user); err != nil {
 		log.Printf("Error binding JSON: %s", err.Error())
@@ -138,7 +138,7 @@ func (u *UserHandler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Member created successfully"})
 }
 
-func (u *UserHandler) Login(c *gin.Context) {
+func (u *UserController) Login(c *gin.Context) {
 	var payload LoginPayload
 
 	if err := c.ShouldBindJSON(&payload); err != nil {
@@ -216,5 +216,73 @@ func (u *UserHandler) Login(c *gin.Context) {
 			"email": existingUser.Email,
 			"name":  fmt.Sprintf("%s %s", *existingUser.FirstName, *existingUser.LastName),
 		},
+	})
+}
+
+func (u *UserController) UploadProfilePicture(c *gin.Context) {
+	user, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusForbidden, gin.H{"error": "invalid session"})
+		return
+	}
+
+	userDetails, ok := user.(model.User)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user type"})
+		return
+	}
+
+	// Parse multipart form
+	form, err := c.MultipartForm()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid form data"})
+		return
+	}
+
+	// Get profile picture file
+	files, exists := form.File["profilePicture"]
+	if !exists || len(files) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "profile picture file is required"})
+		return
+	}
+
+	fileHeader := files[0]
+	file, err := fileHeader.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to open uploaded file"})
+		return
+	}
+	defer file.Close()
+
+	// Delete existing photo if exists
+	if userDetails.ProfilePhoto != nil {
+		_, err := repositories.CloudinaryDelete(userDetails.ProfilePhoto.Public_ID, repositories.ImageResource)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete existing profile photo"})
+			return
+		}
+	}
+
+	// Upload new photo
+	uploaded, err := repositories.CloudinaryUploaderStream(file, fileHeader.Filename, repositories.ImageResource)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload profile photo"})
+		return
+	}
+
+	// Update user record
+	userDetails.ProfilePhoto = &model.Media{
+		Public_ID:  uploaded.PublicID,
+		Secure_URL: uploaded.SecureURL,
+	}
+
+	if err := u.UserRepository.Update(&userDetails, userDetails.ID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update user profile"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":  "profile photo uploaded successfully",
+		"imageUrl": uploaded.SecureURL,
 	})
 }
