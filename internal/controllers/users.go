@@ -135,7 +135,7 @@ func (u *UserController) Create(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Member created successfully"})
+	c.JSON(http.StatusCreated, gin.H{"message": "User created successfully"})
 }
 
 func (u *UserController) Login(c *gin.Context) {
@@ -285,4 +285,186 @@ func (u *UserController) UploadProfilePicture(c *gin.Context) {
 		"message":  "profile photo uploaded successfully",
 		"imageUrl": uploaded.SecureURL,
 	})
+}
+
+func (u *UserController) ForgotPassword(c *gin.Context) {
+	var user model.User
+
+	if err := c.ShouldBindJSON(&user); err != nil {
+		log.Printf("Error binding JSON: %s", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !emailRegex.MatchString(user.Email) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
+		return
+	}
+
+	var existingUser model.User
+	err := u.UserRepository.GetByEmail(&existingUser, user.Email)
+
+	if err != nil {
+		log.Printf("Error:%s", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Email not found"})
+			return
+		}
+		log.Printf("Error getting user: %s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	resetCode := utils.NewCodeGenerator().GenerateEmailVerificationCode(6)
+	forgotPassword := &model.ForgotPassword{
+		Email:     existingUser.Email,
+		ResetCode: resetCode,
+	}
+
+	if err := u.ForgotPasswordRepository.Create(forgotPassword); err != nil {
+		log.Printf("Error: %s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	err = handlers.SendMail(user.Email, "forgotPassword", "Password Reset Mail", handlers.PasswordResetCode{
+		FullName:  fmt.Sprintf("%s %s", *existingUser.FirstName, *existingUser.LastName),
+		ResetCode: resetCode,
+		Year:      time.Now().UTC().Year(),
+	})
+	if err != nil {
+		log.Printf("Error:%s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error sending forgot password mail"})
+		return
+	}
+}
+
+func (u *UserController) VerifyResetCode(c *gin.Context) {
+	var payload ResetCodePayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		log.Printf("Error: %s", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !codeRegex.MatchString(payload.ResetCode) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid code"})
+	}
+
+	var forgotPassword model.ForgotPassword
+	if err := u.ForgotPasswordRepository.GetOneByCode(payload.ResetCode, &forgotPassword); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("Error: %s", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid reset code"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	var user model.User
+	if err := u.UserRepository.GetByEmail(&user, forgotPassword.Email); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("Error: %s", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Email does not exists"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := u.ForgotPasswordRepository.Delete(&forgotPassword, forgotPassword.ID); err != nil {
+		log.Printf("Error: %s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	tokenGenerator, err := jwt.NewSession()
+	if err != nil {
+		log.Printf("Error:%s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	token, err := tokenGenerator.GenerateAccessToken(user.Email)
+	if err != nil {
+		log.Printf("Error:%s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"token": token})
+}
+
+func (u *UserController) ResetPassword(c *gin.Context) {
+	// Extract the authenticated user from the context
+	user, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userDetails, ok := user.(model.User)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user type"})
+		return
+	}
+
+	var payload struct {
+		NewPassword string `json:"password" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		log.Printf("Error: %s", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		return
+	}
+
+	passwordHasher, err := utils.NewPasswordHasher()
+	if err != nil {
+		log.Printf("Error creating password hasher: %s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	hashedPassword, err := passwordHasher.HashPassword(payload.NewPassword)
+	if err != nil {
+		log.Printf("Error hashing password: %s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	userDetails.Password = &hashedPassword
+	if err := u.UserRepository.Update(&userDetails, userDetails.ID); err != nil {
+		log.Printf("Error updating password: %s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password reset successfully"})
+}
+
+func (u *UserController) GenerateAccessToken(c *gin.Context) {
+	var payload struct {
+		RefreshToken string `json:"refreshToken" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		log.Printf("Error: %s", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		return
+	}
+
+	tokenGenerator, err := jwt.NewSession()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	accessToken, err := tokenGenerator.VerifyRefreshToken(payload.RefreshToken)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"accessToken": accessToken})
 }

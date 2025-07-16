@@ -5,3 +5,7 @@ type LoginPayload struct {
 	UserName *string `json:"userName"`
 	Password string  `json:"password"`
 }
+
+type ResetCodePayload struct {
+	ResetCode string `json:"resetCode"`
+}
