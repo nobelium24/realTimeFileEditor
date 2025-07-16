@@ -468,3 +468,38 @@ func (u *UserController) GenerateAccessToken(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"accessToken": accessToken})
 }
+
+func (u *UserController) Profile(c *gin.Context) {
+	user, exists := c.Get("user")
+	if !exists {
+		log.Printf("Error: user not found in context")
+		c.JSON(http.StatusForbidden, gin.H{"error": "invalid session"})
+		return
+	}
+
+	userDetails, ok := user.(model.User)
+	if !ok {
+		log.Printf("Error: invalid user type")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user type"})
+		return
+	}
+
+	// Fetch the latest user data from the database
+	var freshMember model.User
+	err := u.UserRepository.GetById(&freshMember, userDetails.ID)
+	if err != nil {
+		log.Printf("Error fetching latest user data: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch profile"})
+		return
+	}
+
+	newDetails := model.User{
+		FirstName: freshMember.FirstName,
+		LastName:  freshMember.LastName,
+		Email:     freshMember.Email,
+
+		ProfilePhoto: freshMember.ProfilePhoto,
+	}
+
+	c.JSON(http.StatusOK, gin.H{"user": newDetails})
+}

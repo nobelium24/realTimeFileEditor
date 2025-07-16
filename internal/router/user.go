@@ -26,7 +26,7 @@ func UserRouter(g *gin.Engine, u *controllers.UserController, m *middlewares.Aut
 	userGroup := g.Group("/member")
 	userGroup.Use(m.UserAuth(s))
 	{
-		// userGroup.GET("/profile", u.Profile)
+		userGroup.GET("/profile", u.Profile)
 		userGroup.POST("/profile-upload", u.UploadProfilePicture)
 	}
 }
