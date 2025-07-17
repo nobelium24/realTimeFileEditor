@@ -45,6 +45,17 @@ func (d *DocumentAccessRepository) GetOne(id uuid.UUID, documentAccess *model.Do
 	return d.db.Where("id = ?", id).First(&documentAccess).Error
 }
 
+func (d *DocumentAccessRepository) GetOneWithDocIdAndCollaboratorId(
+	docId uuid.UUID, collaboratorId uuid.UUID, documentAccess *model.DocumentAccess) error {
+	return d.db.Where(
+		"document_id = ? AND collaborator_id = ?", docId, collaboratorId,
+	).First(&documentAccess).Error
+}
+
+// func (d *DocumentAccessRepository) GetOneWithCollaboratorId(id uuid.UUID, documentAccess *model.DocumentAccess) error {
+// 	return d.db.Where("collaborator_id = ?", id).First(&documentAccess).Error
+// }collaborator)id
+
 func (d *DocumentAccessRepository) Update(documentAccess *model.DocumentAccess, id uuid.UUID) error {
 	if err := d.db.Where("id = ?", id).Error; err != nil {
 		return err
@@ -58,14 +69,31 @@ func (d *DocumentAccessRepository) Delete(documentAccess *model.DocumentAccess, 
 	return d.db.Delete(documentAccess, "id = ?", id).Error
 }
 
-func (d *DocumentAccessRepository) HasEditAccess(userId, docId string) (bool, error) {
+func (d *DocumentAccessRepository) HasEditAccess(userId, docId uuid.UUID) (bool, error) {
 	var access model.DocumentAccess
-	err := d.db.Where("collaborator_id = ? AND document_id = ? AND role = ?", userId, docId, model.Edit).First(&access).Error
+	err := d.db.Where("collaborator_id = ? AND document_id = ? AND role IN ?", userId, docId, []model.Role{model.Edit, model.Creator}).
+		First(&access).Error
+
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, nil
 		}
 		return false, err
 	}
+
+	return true, nil
+}
+
+func (d *DocumentAccessRepository) HasReadAccess(userId, docId uuid.UUID) (bool, error) {
+	var access model.DocumentAccess
+	err := d.db.Where("collaborator_id = ? AND document_id = ?", userId, docId).First(&access).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+
 	return true, nil
 }

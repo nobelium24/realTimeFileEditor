@@ -81,7 +81,21 @@ func (sh *SocketHandler) RegisterEvents(server *socketio.Server) {
 			return
 		}
 
-		hasAccess, err := sh.DocumentAccessRepository.HasEditAccess(userId, docId)
+		userUUID, err := uuid.Parse(userId)
+		if err != nil {
+			s.Emit("error", "Internal server error")
+			log.Printf("Error: %v", err)
+			return
+		}
+
+		docUUID, err := uuid.Parse(docId)
+		if err != nil {
+			s.Emit("error", "Internal server error")
+			log.Printf("Error: %v", err)
+			return
+		}
+
+		hasAccess, err := sh.DocumentAccessRepository.HasEditAccess(userUUID, docUUID)
 		if err != nil {
 			s.Emit("error", "Error validating editor access")
 			log.Printf("Access validation failed: %v", err)
@@ -113,14 +127,7 @@ func (sh *SocketHandler) RegisterEvents(server *socketio.Server) {
 			return
 		}
 
-		docUUID, err := uuid.Parse(docId)
-		if err != nil {
-			log.Println("Failed to parse doc uuid:", err)
-			s.Emit("error", "Internal server error")
-			return
-		}
-
-		//TODO: Address this later.
+		//TODO: Address this later. TO keep track of edit metadata
 		// type EditPayload struct {
 		// 	DocumentID string          `json:"documentId"`
 		// 	Content    string          `json:"content"`          // updated content or diff/patch
