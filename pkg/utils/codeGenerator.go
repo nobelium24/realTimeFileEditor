@@ -2,6 +2,7 @@ package utils
 
 import (
 	"crypto/rand"
+	"encoding/hex"
 )
 
 type CodeGenerator struct{}
@@ -24,4 +25,12 @@ func (cg *CodeGenerator) GenerateEmailVerificationCode(length int) string {
 	}
 
 	return string(b)
+}
+
+func GenerateSecureToken(n int) (string, error) {
+	bytes := make([]byte, n)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
 }

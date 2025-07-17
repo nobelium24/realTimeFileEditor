@@ -16,15 +16,18 @@ import (
 type DocumentController struct {
 	DocumentRepository       *repositories.DocumentRepository
 	DocumentAccessRepository *repositories.DocumentAccessRepository
+	InviteRepository         *repositories.InviteRepository
 }
 
 func NewDocumentController(
 	documentRepository *repositories.DocumentRepository,
 	documentAccessRepository *repositories.DocumentAccessRepository,
+	inviteRepository *repositories.InviteRepository,
 ) *DocumentController {
 	return &DocumentController{
 		DocumentRepository:       documentRepository,
 		DocumentAccessRepository: documentAccessRepository,
+		InviteRepository:         inviteRepository,
 	}
 }
 
@@ -196,7 +199,7 @@ func (d *DocumentController) RevokeAccess(c *gin.Context) {
 
 func (d *DocumentController) DeleteDocument(c *gin.Context) {
 	user, exists := c.Get("user")
-	documentId := c.Param("documentId")
+	documentId := c.Param("id")
 
 	if !exists {
 		c.JSON(http.StatusForbidden, gin.H{"error": "invalid session"})
@@ -344,7 +347,7 @@ func (d *DocumentController) FetchAllDocuments(c *gin.Context) {
 
 func (d *DocumentController) FetchCollaborators(c *gin.Context) {
 	user, exists := c.Get("user")
-	documentId := c.Param("documentId")
+	documentId := c.Param("id")
 
 	if !exists {
 		c.JSON(http.StatusForbidden, gin.H{"error": "invalid session"})
@@ -415,6 +418,11 @@ func (d *DocumentController) TransferOwnership(c *gin.Context) {
 		return
 	}
 
+	if userDetails.ID == recipientUUID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "you already own this document"})
+		return
+	}
+
 	var document model.Document
 	if err := d.DocumentRepository.GetOne(documentUUID, &document); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -431,8 +439,8 @@ func (d *DocumentController) TransferOwnership(c *gin.Context) {
 		return
 	}
 
-	var accessOne model.DocumentAccess
-	if err := d.DocumentAccessRepository.GetOneWithDocIdAndCollaboratorId(documentUUID, userDetails.ID, &accessOne); err != nil {
+	var creatorAccess model.DocumentAccess
+	if err := d.DocumentAccessRepository.GetOneWithDocIdAndCollaboratorId(documentUUID, userDetails.ID, &creatorAccess); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "document access for creator not found"})
 			return
@@ -442,8 +450,8 @@ func (d *DocumentController) TransferOwnership(c *gin.Context) {
 		return
 	}
 
-	var accessTwo model.DocumentAccess
-	if err := d.DocumentAccessRepository.GetOneWithDocIdAndCollaboratorId(documentUUID, recipientUUID, &accessTwo); err != nil {
+	var recipientAccess model.DocumentAccess
+	if err := d.DocumentAccessRepository.GetOneWithDocIdAndCollaboratorId(documentUUID, recipientUUID, &recipientAccess); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "document access for collaborator not found"})
 			return
@@ -454,8 +462,8 @@ func (d *DocumentController) TransferOwnership(c *gin.Context) {
 	}
 
 	document.UserID = recipientUUID
-	accessOne.Role = model.Edit
-	accessTwo.Role = model.Creator
+	creatorAccess.Role = model.Edit
+	recipientAccess.Role = model.Creator
 
 	err = d.DocumentRepository.ExecuteInTransaction(func(tx *gorm.DB) error {
 		if err := d.DocumentRepository.UpdateWithTransaction(tx, &document, documentUUID); err != nil {
@@ -463,12 +471,12 @@ func (d *DocumentController) TransferOwnership(c *gin.Context) {
 			return fmt.Errorf("failed to update document details: %w", err)
 		}
 
-		if err := d.DocumentAccessRepository.UpdateWithTransaction(tx, &accessOne, accessOne.ID); err != nil {
+		if err := d.DocumentAccessRepository.UpdateWithTransaction(tx, &creatorAccess, creatorAccess.ID); err != nil {
 			log.Printf("Error: %s", err)
 			return fmt.Errorf("failed to update document details: %w", err)
 		}
 
-		if err := d.DocumentAccessRepository.UpdateWithTransaction(tx, &accessTwo, accessTwo.ID); err != nil {
+		if err := d.DocumentAccessRepository.UpdateWithTransaction(tx, &recipientAccess, recipientAccess.ID); err != nil {
 			log.Printf("Error: %s", err)
 			return fmt.Errorf("failed to update document details: %w", err)
 		}
