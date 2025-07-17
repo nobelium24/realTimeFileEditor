@@ -30,7 +30,7 @@ func (d *DocumentRepository) CreateWithTransaction(tx *gorm.DB, document *model.
 
 func (d *DocumentRepository) GetUserDocuments(userId uuid.UUID) ([]model.Document, error) {
 	var documents []model.Document
-	if err := d.db.Where("member_id = ?", userId).Find(&documents).Error; err != nil {
+	if err := d.db.Where("user_id = ?", userId).Find(&documents).Error; err != nil {
 		return nil, fmt.Errorf("error fetching documents: %s", err)
 	}
 	return documents, nil
@@ -72,7 +72,7 @@ func (d *DocumentRepository) GetOneWithTransaction(tx *gorm.DB, id uuid.UUID, do
 
 func (d *DocumentRepository) ExecuteInTransaction(fn func(tx *gorm.DB) error, maxRetries int) error {
 	var lastErr error
-	for i := 0; i < maxRetries; i++ {
+	for i := range maxRetries {
 		err := d.db.Transaction(func(tx *gorm.DB) error {
 			if err := tx.Exec("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ").Error; err != nil {
 				return err

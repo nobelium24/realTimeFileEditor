@@ -3,6 +3,7 @@ package repositories
 import (
 	"errors"
 	"fmt"
+	"math"
 	"realTimeEditor/internal/model"
 	"time"
 
@@ -38,6 +39,14 @@ func (d *DocumentAccessRepository) GetDocumentAccesses(documentId uuid.UUID) ([]
 		return nil, fmt.Errorf("error fetching document accesses: %w", err)
 	}
 
+	return documentAccesses, nil
+}
+
+func (d *DocumentAccessRepository) GetUserDocumentAccesses(userId uuid.UUID) ([]model.DocumentAccess, error) {
+	var documentAccesses []model.DocumentAccess
+	if err := d.db.Where("collaborator_id = ?", userId).Find(&documentAccesses).Error; err != nil {
+		return nil, fmt.Errorf("error fetching documents: %s", err)
+	}
 	return documentAccesses, nil
 }
 
@@ -96,4 +105,34 @@ func (d *DocumentAccessRepository) HasReadAccess(userId, docId uuid.UUID) (bool,
 	}
 
 	return true, nil
+}
+
+func (d *DocumentAccessRepository) UpdateWithTransaction(tx *gorm.DB, document *model.DocumentAccess, id uuid.UUID) error {
+	if err := tx.Where("id = ?", id).First(document).Error; err != nil {
+		return err
+	}
+	document.UpdatedAt = time.Now().UTC()
+	return tx.Model(&model.DocumentAccess{}).
+		Where("id = ?", id).Updates(document).Error
+}
+
+func (d *DocumentAccessRepository) ExecuteInTransaction(fn func(tx *gorm.DB) error, maxRetries int) error {
+	var lastErr error
+	for i := range maxRetries {
+		err := d.db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Exec("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ").Error; err != nil {
+				return err
+			}
+			return fn(tx)
+		})
+
+		if err == nil {
+			return nil
+		}
+
+		time.Sleep(time.Duration(math.Pow(2, float64(i))) * time.Millisecond * 100)
+		lastErr = err
+	}
+
+	return fmt.Errorf("transaction failed after %d retries: %w", maxRetries, lastErr)
 }

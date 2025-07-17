@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"realTimeEditor/internal/model"
@@ -70,7 +71,7 @@ func (d *DocumentController) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Document created successfully"})
 }
 
-func (d *DocumentController) GetUserDocuments(c *gin.Context) {
+func (d *DocumentController) GetUserCreatedDocuments(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
 		c.JSON(http.StatusForbidden, gin.H{"error": "invalid session"})
@@ -314,4 +315,175 @@ func (d *DocumentController) ModifyAccess(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Role updated"})
 }
 
-//TODO: Work on transfer ownership and fetch document collaborators
+func (d *DocumentController) FetchAllDocuments(c *gin.Context) {
+	user, exists := c.Get("user")
+
+	if !exists {
+		c.JSON(http.StatusForbidden, gin.H{"error": "invalid session"})
+		return
+	}
+
+	userDetails, ok := user.(model.User)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user type"})
+		return
+	}
+
+	documents, err := d.DocumentAccessRepository.GetUserDocumentAccesses(userDetails.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusOK, gin.H{"message": "You do not have documents yet"})
+			return
+		}
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Documents fetched", "documents": documents})
+}
+
+func (d *DocumentController) FetchCollaborators(c *gin.Context) {
+	user, exists := c.Get("user")
+	documentId := c.Param("documentId")
+
+	if !exists {
+		c.JSON(http.StatusForbidden, gin.H{"error": "invalid session"})
+		return
+	}
+
+	userDetails, ok := user.(model.User)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user type"})
+		return
+	}
+
+	documentUUID, err := uuid.Parse(documentId)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document access ID"})
+		return
+	}
+
+	var docAccess model.DocumentAccess
+	if err := d.DocumentAccessRepository.GetOneWithDocIdAndCollaboratorId(documentUUID, userDetails.ID, &docAccess); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "You don't have necessary permission to view this"})
+			return
+		}
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	collaborators, err := d.DocumentAccessRepository.GetDocumentAccesses(documentUUID)
+	if err := d.DocumentAccessRepository.GetOneWithDocIdAndCollaboratorId(documentUUID, userDetails.ID, &docAccess); err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Collaborators fetched", "collaborators": collaborators})
+}
+
+func (d *DocumentController) TransferOwnership(c *gin.Context) {
+	user, exists := c.Get("user")
+	documentId := c.Param("documentId")
+	recipientId := c.Param("recipientId")
+
+	if !exists {
+		c.JSON(http.StatusForbidden, gin.H{"error": "invalid session"})
+		return
+	}
+
+	userDetails, ok := user.(model.User)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user type"})
+		return
+	}
+
+	documentUUID, err := uuid.Parse(documentId)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document access ID"})
+		return
+	}
+
+	recipientUUID, err := uuid.Parse(recipientId)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document access ID"})
+		return
+	}
+
+	var document model.Document
+	if err := d.DocumentRepository.GetOne(documentUUID, &document); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "document not found"})
+			return
+		}
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	if userDetails.ID != document.UserID {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "you do not have access to carry out this action"})
+		return
+	}
+
+	var accessOne model.DocumentAccess
+	if err := d.DocumentAccessRepository.GetOneWithDocIdAndCollaboratorId(documentUUID, userDetails.ID, &accessOne); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "document access for creator not found"})
+			return
+		}
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	var accessTwo model.DocumentAccess
+	if err := d.DocumentAccessRepository.GetOneWithDocIdAndCollaboratorId(documentUUID, recipientUUID, &accessTwo); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "document access for collaborator not found"})
+			return
+		}
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	document.UserID = recipientUUID
+	accessOne.Role = model.Edit
+	accessTwo.Role = model.Creator
+
+	err = d.DocumentRepository.ExecuteInTransaction(func(tx *gorm.DB) error {
+		if err := d.DocumentRepository.UpdateWithTransaction(tx, &document, documentUUID); err != nil {
+			log.Printf("Error: %s", err)
+			return fmt.Errorf("failed to update document details: %w", err)
+		}
+
+		if err := d.DocumentAccessRepository.UpdateWithTransaction(tx, &accessOne, accessOne.ID); err != nil {
+			log.Printf("Error: %s", err)
+			return fmt.Errorf("failed to update document details: %w", err)
+		}
+
+		if err := d.DocumentAccessRepository.UpdateWithTransaction(tx, &accessTwo, accessTwo.ID); err != nil {
+			log.Printf("Error: %s", err)
+			return fmt.Errorf("failed to update document details: %w", err)
+		}
+
+		return nil
+	}, 3)
+
+	if err != nil {
+		log.Printf("Transaction failed: %s", err)
+		if originalErr := errors.Unwrap(err); originalErr != nil {
+			err = originalErr
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error transferring ownership"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Document ownership transferred"})
+}
