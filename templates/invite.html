@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Welcome to FileEditor</title>
-        <style>
+    <title>You're Invited to FileEditor</title>
+    <style>
         * {
             -ms-text-size-adjust: 100%;
             -webkit-text-size-adjust: 100%;
@@ -29,11 +29,9 @@
 
         .email-header {
             background-color: #7e3485;
-            padding: 20px;
-            padding-block: 10px;
-            align-items: center;
-            justify-content: center;
+            padding: 20px 20px 10px;
             display: flex;
+            align-items: center;
             gap: 10px;
         }
 
@@ -64,10 +62,20 @@
 
         .info-box {
             background-color: #ffffff;
-            border-left: 4px solid #bdb098;
-            padding: 15px;
-            padding-block: 8px;
+            border-left: 4px solid #E3D6FF;
+            padding: 15px 20px;
             margin: 20px 0;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background-color: #7e3485;
+            color: #ffffff;
+            padding: 12px 24px;
+            margin-top: 15px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
         }
 
         a {
@@ -86,24 +94,27 @@
 <body>
     <div class="email-container">
         <div class="email-header">
-            <img src="https://res.cloudinary.com/djqokg2kh/image/upload/v1743772890/zynsxy22g6lhtcmuakif.jpg" alt="FileEditor" class="logo"
-                style="width: 60px; height: auto;">
+            <img src="https://res.cloudinary.com/djqokg2kh/image/upload/v1743772890/zynsxy22g6lhtcmuakif.jpg" alt="FileEditor Logo" class="logo">
             <div style="background-color: #fff; width: 1px; height: 35px;"></div>
-            <h1 class="header-text" style="color: #fff; font-size: 30px; margin: 0;">FileEditor</h1>
+            <h1 class="header-text">FileEditor</h1>
         </div>
 
         <div class="email-body">
-            <h2>Forgot Password</h2>
+            <h2>You’re Invited!</h2>
             <p>Hello {{.FullName}},</p>
-            <div class="info-box"
-                style="background-color: #ffffff; border-left: 4px solid #E3D6FF; padding: 15px; padding-block: 8px; margin: 20px 0;">
+            <div class="info-box">
                 <p>
-                    We noticed you made a request to reset your password. Please, use this code 
-                    <b>{{.ResetCode}}</b> to reset your password. If this request wasn't made by you,
-                    kindly ignore this mail.
+                    You’ve been invited to collaborate on <strong>{{.DocumentTitle}}</strong> using FileEditor.
+                    Click the button below to accept the invitation and join the document as a <strong>{{.Role}}</strong>.
+                </p>
+                <p style="text-align: center;">
+                    <a href="{{.InviteLink}}" class="cta-button">Accept Invitation</a>
+                </p>
+                <p>If the button doesn’t work, copy and paste this link in your browser:<br>
+                    <a href="{{.InviteLink}}">{{.InviteLink}}</a>
                 </p>
             </div>
-            <p>Best regards,<br>The FileEditor Team</p>
+            <p>Looking forward to having you on board!<br>The FileEditor Team</p>
         </div>
 
         <div class="email-footer">

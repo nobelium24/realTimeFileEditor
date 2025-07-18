@@ -27,7 +27,7 @@ func (cg *CodeGenerator) GenerateEmailVerificationCode(length int) string {
 	return string(b)
 }
 
-func GenerateSecureToken(n int) (string, error) {
+func (cg *CodeGenerator) GenerateSecureToken(n int) (string, error) {
 	bytes := make([]byte, n)
 	if _, err := rand.Read(bytes); err != nil {
 		return "", err

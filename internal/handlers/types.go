@@ -1,5 +1,7 @@
 package handlers
 
+import "realTimeEditor/internal/model"
+
 type PasswordResetCode struct {
 	FullName  string
 	ResetCode string
@@ -9,4 +11,12 @@ type PasswordResetCode struct {
 type WelcomeMessage struct {
 	FullName string
 	Year     int
+}
+
+type Invite struct {
+	FullName      string
+	DocumentTitle string
+	Role          model.Role
+	InviteLink    string
+	Year          int
 }

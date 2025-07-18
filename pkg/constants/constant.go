@@ -21,6 +21,7 @@ type EnvVars struct {
 	CLOUD_NAME    string
 	API_KEY       string
 	API_SECRET    string
+	FE_ROOT_URL   string
 }
 
 func LoadEnv() (*EnvVars, error) {
@@ -54,6 +55,7 @@ func LoadEnv() (*EnvVars, error) {
 	cloudName := os.Getenv("CLOUD_NAME")
 	apiKey := os.Getenv("API_KEY")
 	apiSecret := os.Getenv("API_SECRET")
+	feRootURL := os.Getenv("FE_ROOT_URL")
 
 	log.Printf("SMTP_HOST from env: '%s'", smtp_host)
 	log.Printf("SMTP_PORT from env: '%s'", smtp_port)
@@ -78,6 +80,7 @@ func LoadEnv() (*EnvVars, error) {
 		missing("CLOUD_NAME", cloudName),
 		missing("API_KEY", apiKey),
 		missing("API_SECRET", apiSecret),
+		missing("FE_ROOT_URL", feRootURL),
 	} {
 		if err != nil {
 			return nil, err
@@ -96,5 +99,6 @@ func LoadEnv() (*EnvVars, error) {
 		CLOUD_NAME:    cloudName,
 		API_KEY:       apiKey,
 		API_SECRET:    apiSecret,
+		FE_ROOT_URL:   feRootURL,
 	}, nil
 }

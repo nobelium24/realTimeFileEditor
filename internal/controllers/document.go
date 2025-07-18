@@ -5,8 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"realTimeEditor/internal/handlers"
 	"realTimeEditor/internal/model"
 	"realTimeEditor/internal/repositories"
+	"realTimeEditor/pkg/constants"
+	"realTimeEditor/pkg/utils"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -17,17 +21,20 @@ type DocumentController struct {
 	DocumentRepository       *repositories.DocumentRepository
 	DocumentAccessRepository *repositories.DocumentAccessRepository
 	InviteRepository         *repositories.InviteRepository
+	UserRepository           *repositories.UserRepository
 }
 
 func NewDocumentController(
 	documentRepository *repositories.DocumentRepository,
 	documentAccessRepository *repositories.DocumentAccessRepository,
 	inviteRepository *repositories.InviteRepository,
+	userRepository *repositories.UserRepository,
 ) *DocumentController {
 	return &DocumentController{
 		DocumentRepository:       documentRepository,
 		DocumentAccessRepository: documentAccessRepository,
 		InviteRepository:         inviteRepository,
+		UserRepository:           userRepository,
 	}
 }
 
@@ -495,3 +502,108 @@ func (d *DocumentController) TransferOwnership(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Document ownership transferred"})
 }
+
+func (d *DocumentController) InviteCollaborator(c *gin.Context) {
+	var payload struct {
+		DocumentId string     `json:"documentId"`
+		Email      string     `json:"email"`
+		Role       model.Role `json:"role"`
+	}
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		return
+	}
+
+	user, exists := c.Get("user")
+
+	if !exists {
+		c.JSON(http.StatusForbidden, gin.H{"error": "invalid session"})
+		return
+	}
+
+	userDetails, ok := user.(model.User)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user type"})
+		return
+	}
+
+	documentUUID, err := uuid.Parse(payload.DocumentId)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document access ID"})
+		return
+	}
+
+	var document model.Document
+	if err := d.DocumentRepository.GetOne(documentUUID, &document); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Document not found"})
+			return
+		}
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	token, err := utils.NewCodeGenerator().GenerateSecureToken(16)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating invite token"})
+		return
+	}
+
+	var findUser model.User
+	var collaboratorId *uuid.UUID
+	if userErr := d.UserRepository.GetByEmail(&findUser, payload.Email); userErr != nil {
+		if !errors.Is(userErr, gorm.ErrRecordNotFound) {
+			log.Printf("Error retrieving user details: %s", userErr.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+			return
+		}
+	} else {
+		collaboratorId = &findUser.ID
+	}
+
+	newInvite := model.Invite{
+		Email:          &payload.Email,
+		DocumentId:     documentUUID,
+		InviterId:      userDetails.ID,
+		Role:           payload.Role,
+		Status:         model.InviteStatus(model.Pending),
+		Token:          token,
+		CollaboratorId: collaboratorId,
+	}
+
+	if err := d.InviteRepository.Create(&newInvite); err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	envVars, err := constants.LoadEnv()
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	inviteUrl := fmt.Sprintf("%s/invite/%s", envVars.FE_ROOT_URL, token)
+	err = handlers.SendMail(payload.Email, "invite", "Invite Mail", handlers.Invite{
+		InviteLink:    inviteUrl,
+		DocumentTitle: document.Title,
+		Role:          payload.Role,
+		FullName:      payload.Email,
+		Year:          time.Now().Year(),
+	})
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Invite sent successfully"})
+
+}
+
+//TODO: Work on the accept invitation end-point and consider logging non existing users email to notify them to sign up
