@@ -42,7 +42,7 @@ func (s *Session) GenerateAccessToken(email string) (string, error) {
 func (s *Session) GenerateRefreshToken(email string) (string, error) {
 	claims := jwt.MapClaims{
 		"email":      email,
-		"exp":        time.Now().UTC().Add(time.Hour * 24).Unix(),
+		"exp":        time.Now().UTC().Add(time.Hour * 24 * 30).Unix(),
 		"token_type": "refresh",
 		"iat":        time.Now().UTC().Unix(),
 		"iss":        "nobelium24",

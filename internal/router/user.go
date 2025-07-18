@@ -16,6 +16,7 @@ func UserRouter(g *gin.Engine, u *controllers.UserController, m *middlewares.Aut
 		authGroup.POST("/forgot-password", u.ForgotPassword)
 		authGroup.POST("/verify-reset-code", u.VerifyResetCode)
 		authGroup.POST("/access-token", u.GenerateAccessToken)
+		authGroup.POST("/complete-account", u.CompleteAccount)
 	}
 
 	authGroup.Use(m.UserAuth(s))

@@ -15,6 +15,7 @@ import (
 
 	"github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -136,6 +137,117 @@ func (u *UserController) Create(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "User created successfully"})
+}
+
+func (u *UserController) CompleteAccount(c *gin.Context) {
+	userIDStr := c.Param("userId")
+	documentID := c.Query("documentId")
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	var userInput struct {
+		FirstName string `json:"firstName"`
+		LastName  string `json:"lastName"`
+		Password  string `json:"password"`
+	}
+
+	if err := c.ShouldBindJSON(&userInput); err != nil {
+		log.Printf("Error binding JSON: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	ok, err := nameRegex.MatchString(userInput.FirstName)
+	if err != nil || !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid first name"})
+		return
+	}
+
+	ok, err = nameRegex.MatchString(userInput.LastName)
+	if err != nil || !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid last name"})
+		return
+	}
+
+	if !passwordRegex.MatchString(userInput.Password) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid password format"})
+		return
+	}
+
+	var user model.User
+	if err := u.UserRepository.GetById(&user, userID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+		log.Printf("Error fetching user: %s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	hasher, err := utils.NewPasswordHasher()
+	if err != nil {
+		log.Printf("Error creating password hasher: %s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	hashedPassword, err := hasher.HashPassword(userInput.Password)
+	if err != nil {
+		log.Printf("Error hashing password: %s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	user.FirstName = &userInput.FirstName
+	user.LastName = &userInput.LastName
+	user.Password = &hashedPassword
+
+	if err := u.UserRepository.Update(&user, userID); err != nil {
+		log.Printf("Error updating user: %s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete account setup"})
+		return
+	}
+
+	err = handlers.SendMail(user.Email, "welcome", "Welcome to FileEditor", handlers.WelcomeMessage{
+		FullName: fmt.Sprintf("%s %s", userInput.FirstName, userInput.LastName),
+		Year:     time.Now().UTC().Year(),
+	})
+	if err != nil {
+		log.Printf("Error sending welcome email: %s", err)
+	}
+
+	// redirectURL := fmt.Sprintf("%s/get-document/%s", envVars.FE_ROOT_URL, documentID)
+	// c.Redirect(http.StatusFound, redirectURL)
+
+	tokenGenerator, err := jwt.NewSession()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	accessToken, err := tokenGenerator.GenerateAccessToken(user.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate access token"})
+		return
+	}
+
+	refreshToken, err := tokenGenerator.GenerateRefreshToken(user.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate refresh token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":      "Account setup complete",
+		"accessToken":  accessToken,
+		"refreshToken": refreshToken,
+		"redirectTo":   fmt.Sprintf("/get-document/%s", documentID),
+	})
 }
 
 func (u *UserController) Login(c *gin.Context) {

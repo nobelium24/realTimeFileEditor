@@ -9,6 +9,7 @@ import (
 	"realTimeEditor/internal/model"
 	"realTimeEditor/internal/repositories"
 	"realTimeEditor/pkg/constants"
+	"realTimeEditor/pkg/jwt"
 	"realTimeEditor/pkg/utils"
 	"time"
 
@@ -683,8 +684,32 @@ func (d *DocumentController) AcceptInvitation(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error granting document access"})
 			return
 		}
-		redirectURL := fmt.Sprintf("%s/get-document/%s", envVars.FE_ROOT_URL, invite.DocumentId.String())
-		c.Redirect(http.StatusFound, redirectURL)
+
+		tokenGenerator, err := jwt.NewSession()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+			return
+		}
+
+		accessToken, err := tokenGenerator.GenerateAccessToken(user.Email)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate access token"})
+			return
+		}
+
+		refreshToken, err := tokenGenerator.GenerateRefreshToken(user.Email)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate refresh token"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"message":      "Account setup complete",
+			"accessToken":  accessToken,
+			"refreshToken": refreshToken,
+			"redirectTo":   fmt.Sprintf("/get-document/%s", invite.DocumentId.String()),
+		})
+
 	}
 
 	newUser := model.User{
@@ -707,7 +732,7 @@ func (d *DocumentController) AcceptInvitation(c *gin.Context) {
 		return
 	}
 
-	accountSetupUrl := fmt.Sprintf("%s/complete-registration/%s", envVars.DB_URI, createdUser.ID)
+	accountSetupUrl := fmt.Sprintf("%s/complete-registration/%s?documentId=%s", envVars.DB_URI, createdUser.ID, invite.DocumentId)
 	err = handlers.SendMail(user.Email, "welcome", "Welcome Mail", handlers.AccountSetup{
 		DocumentTitle:    document.Title,
 		Role:             invite.Role,

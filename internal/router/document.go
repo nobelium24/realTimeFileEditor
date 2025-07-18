@@ -21,5 +21,11 @@ func DocumentRouter(g *gin.Engine, d *controllers.DocumentController, m *middlew
 		documentGroup.GET("/all", d.FetchAllDocuments)
 		documentGroup.GET("/collaborators/:id", d.FetchCollaborators)
 		documentGroup.PATCH("/transfer-ownership/:documentId/:recipientId", d.TransferOwnership)
+		documentGroup.POST("/invite-collaborator", d.InviteCollaborator)
+	}
+
+	docGroup := g.Group("/invite")
+	{
+		docGroup.GET("/accept", d.AcceptInvitation)
 	}
 }
