@@ -20,3 +20,9 @@ type Invite struct {
 	InviteLink    string
 	Year          int
 }
+
+type AccountSetup struct {
+	DocumentTitle    string
+	Role             model.Role
+	AccountSetupLink string
+}

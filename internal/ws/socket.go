@@ -8,6 +8,7 @@ import (
 	"realTimeEditor/internal/repositories"
 	"realTimeEditor/pkg/jwt"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	socketio "github.com/googollee/go-socket.io"
 )
@@ -69,6 +70,18 @@ func (sh *SocketHandler) RegisterEvents(server *socketio.Server) {
 			"userId":  user.ID.String(),
 		})
 		return nil
+	})
+
+	server.OnEvent("/ws", "join", func(s socketio.Conn, docId string) {
+		log.Printf("User %s joined document room %s", s.ID(), docId)
+		s.Join(docId)
+		s.Emit("joined", gin.H{"room": docId})
+	})
+
+	server.OnEvent("/ws", "leave", func(s socketio.Conn, docId string) {
+		log.Printf("User %s left document room %s", s.ID(), docId)
+		s.Leave(docId)
+		s.Emit("left", gin.H{"room": docId})
 	})
 
 	server.OnEvent("/ws", "edit", func(s socketio.Conn, data map[string]interface{}) {
@@ -140,6 +153,11 @@ func (sh *SocketHandler) RegisterEvents(server *socketio.Server) {
 			s.Emit("error", "Failed to update document")
 			return
 		}
+
+		server.BroadcastToRoom("/ws", docId, "document_updated", gin.H{
+			"editorId": userId,
+			"document": document,
+		})
 	})
 
 }

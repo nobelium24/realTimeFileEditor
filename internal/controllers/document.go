@@ -128,6 +128,10 @@ func (d *DocumentController) GetSingleDocument(c *gin.Context) {
 
 	var document model.Document
 	if err := d.DocumentRepository.GetOne(documentUUID, &document); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "document not found"})
+			return
+		}
 		log.Printf("Error fetching document: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
@@ -172,6 +176,10 @@ func (d *DocumentController) RevokeAccess(c *gin.Context) {
 
 	var documentAccess model.DocumentAccess
 	if err := d.DocumentAccessRepository.GetOne(documentAccessUUID, &documentAccess); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "document access not found"})
+			return
+		}
 		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusNotFound, gin.H{"error": "document access not found"})
 		return
@@ -185,6 +193,10 @@ func (d *DocumentController) RevokeAccess(c *gin.Context) {
 	var requesterAccess model.DocumentAccess
 	err = d.DocumentAccessRepository.GetOneWithDocIdAndCollaboratorId(documentAccess.DocumentId, userDetails.ID, &requesterAccess)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "document access not found"})
+			return
+		}
 		log.Printf("Error checking requester access: %s", err.Error())
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
@@ -276,6 +288,10 @@ func (d *DocumentController) ModifyAccess(c *gin.Context) {
 
 	var documentAccess model.DocumentAccess
 	if err := d.DocumentAccessRepository.GetOne(documentAccessUUID, &documentAccess); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "document access not found"})
+			return
+		}
 		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusNotFound, gin.H{"error": "document access not found"})
 		return
@@ -289,6 +305,10 @@ func (d *DocumentController) ModifyAccess(c *gin.Context) {
 	var requesterAccess model.DocumentAccess
 	err = d.DocumentAccessRepository.GetOneWithDocIdAndCollaboratorId(documentAccess.DocumentId, userDetails.ID, &requesterAccess)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "document access not found"})
+			return
+		}
 		log.Printf("Error checking requester access: %s", err.Error())
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
@@ -387,6 +407,10 @@ func (d *DocumentController) FetchCollaborators(c *gin.Context) {
 
 	collaborators, err := d.DocumentAccessRepository.GetDocumentAccesses(documentUUID)
 	if err := d.DocumentAccessRepository.GetOneWithDocIdAndCollaboratorId(documentUUID, userDetails.ID, &docAccess); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "document access not found"})
+			return
+		}
 		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
@@ -555,14 +579,37 @@ func (d *DocumentController) InviteCollaborator(c *gin.Context) {
 
 	var findUser model.User
 	var collaboratorId *uuid.UUID
-	if userErr := d.UserRepository.GetByEmail(&findUser, payload.Email); userErr != nil {
-		if !errors.Is(userErr, gorm.ErrRecordNotFound) {
-			log.Printf("Error retrieving user details: %s", userErr.Error())
+	if err := d.UserRepository.GetByEmail(&findUser, payload.Email); err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("Error retrieving user details: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 	} else {
 		collaboratorId = &findUser.ID
+	}
+
+	var oldInvite model.Invite
+	if err := d.InviteRepository.GetOneByEmailAndDocId(&oldInvite, payload.Email, documentUUID); err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("Error: %s", err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+			return
+		}
+	}
+
+	if oldInvite.Status == model.InviteStatus(model.Accepted) {
+		c.JSON(http.StatusOK, gin.H{"error": "Invite already accepted"})
+		return
+	}
+
+	if oldInvite.Status == model.InviteStatus(model.Pending) {
+		var deleteInvite model.Invite
+		if err := d.InviteRepository.Delete(&deleteInvite, oldInvite.ID); err != nil {
+			log.Printf("Error: %s", err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+			return
+		}
 	}
 
 	newInvite := model.Invite{
@@ -603,7 +650,74 @@ func (d *DocumentController) InviteCollaborator(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Invite sent successfully"})
+}
 
+func (d *DocumentController) AcceptInvitation(c *gin.Context) {
+	token := c.Param("token")
+	envVars, err := constants.LoadEnv()
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	var invite model.Invite
+	if err := d.InviteRepository.GetOneByToken(token, &invite); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Invitation not found"})
+		}
+	}
+
+	var user model.User
+	if err := d.UserRepository.GetByEmail(&user, *invite.Email); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		log.Printf("Error retrieving user details: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	} else {
+		documentAccess := model.DocumentAccess{
+			CollaboratorId: user.ID,
+			DocumentId:     invite.DocumentId,
+			Role:           invite.Role,
+		}
+		if err := d.DocumentAccessRepository.Create(&documentAccess); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error granting document access"})
+			return
+		}
+		redirectURL := fmt.Sprintf("%s/get-document/%s", envVars.FE_ROOT_URL, invite.DocumentId.String())
+		c.Redirect(http.StatusFound, redirectURL)
+	}
+
+	newUser := model.User{
+		Email: *invite.Email,
+	}
+	createdUser, err := d.UserRepository.Create(&newUser)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating user"})
+		return
+	}
+
+	var document model.Document
+	if err := d.DocumentRepository.GetOne(invite.DocumentId, &document); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "document not found"})
+			return
+		}
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	accountSetupUrl := fmt.Sprintf("%s/complete-registration/%s", envVars.DB_URI, createdUser.ID)
+	err = handlers.SendMail(user.Email, "welcome", "Welcome Mail", handlers.AccountSetup{
+		DocumentTitle:    document.Title,
+		Role:             invite.Role,
+		AccountSetupLink: accountSetupUrl,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "invite accepted"})
 }
 
 //TODO: Work on the accept invitation end-point and consider logging non existing users email to notify them to sign up

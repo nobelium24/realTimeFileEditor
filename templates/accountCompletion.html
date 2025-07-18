@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Complete Your FileEditor Account</title>
+    <style>
+        * {
+            -ms-text-size-adjust: 100%;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            margin: 0;
+            padding: 0;
+            width: 100% !important;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+
+        .email-header {
+            background-color: #7e3485;
+            padding: 20px 20px 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .email-body {
+            padding: 30px;
+            background-color: #ca8c19;
+        }
+
+        .email-footer {
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666666;
+            background-color: #f1f1f1;
+        }
+
+        .logo {
+            width: 60px;
+            height: auto;
+            display: block;
+        }
+
+        .header-text {
+            color: #fff;
+            font-size: 30px;
+            margin: 0;
+        }
+
+        .info-box {
+            background-color: #ffffff;
+            border-left: 4px solid #E3D6FF;
+            padding: 15px 20px;
+            margin: 20px 0;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background-color: #7e3485;
+            color: #ffffff;
+            padding: 12px 24px;
+            margin-top: 15px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        a {
+            color: #ca8c19;
+            text-decoration: underline;
+        }
+
+        @media only screen and (max-width: 600px) {
+            .email-body {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="email-container">
+        <div class="email-header">
+            <img src="https://res.cloudinary.com/djqokg2kh/image/upload/v1743772890/zynsxy22g6lhtcmuakif.jpg" alt="FileEditor Logo" class="logo" />
+            <div style="background-color: #fff; width: 1px; height: 35px;"></div>
+            <h1 class="header-text">FileEditor</h1>
+        </div>
+
+        <div class="email-body">
+            <h2>You're Almost In!</h2>
+            <p>Hello,</p>
+            <div class="info-box">
+                <p>
+                    You’ve been invited to collaborate on <strong>{{.DocumentTitle}}</strong> as a <strong>{{.Role}}</strong> using FileEditor.
+                    To access the document, please complete your account setup by clicking the button below:
+                </p>
+                <p style="text-align: center;">
+                    <a href="{{.AccountSetupLink}}" class="cta-button">Complete Your Account</a>
+                </p>
+                <p>If the button doesn’t work, copy and paste this link in your browser:<br />
+                    <a href="{{.AccountSetupLink}}">{{.AccountSetupLink}}</a>
+                </p>
+            </div>
+            <p>We’re excited to have you join!<br />– The FileEditor Team</p>
+        </div>
+
+        <div class="email-footer">
+            <p>&copy; {{.Year}} FileEditor. All rights reserved.</p>
+            <p>No 2 test str.</p>
+            <p>
+                <a href="https://www.FileEditor.com/privacy" style="color: #4E3485;">Privacy Policy</a> |
+                <a href="https://www.FileEditor.com/terms" style="color: #4E3485;">Terms of Service</a>
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>
