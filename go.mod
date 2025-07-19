@@ -61,5 +61,6 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jung-kurt/gofpdf v1.16.2
+	github.com/robfig/cron/v3 v3.0.1
 	golang.org/x/text v0.26.0 // indirect
 )

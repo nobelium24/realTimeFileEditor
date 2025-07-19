@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"realTimeEditor/config"
 	"realTimeEditor/internal/controllers"
+	"realTimeEditor/internal/jobs"
 	"realTimeEditor/internal/middlewares"
 	"realTimeEditor/internal/repositories"
 	"realTimeEditor/internal/router"
@@ -81,6 +82,12 @@ func main() {
 	}
 
 	router := CreateRouter(&container)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cleanUpJob := jobs.NewReceiptCleanup(*documentMediaRepository)
+	go cleanUpJob.Start(ctx)
 
 	server := &http.Server{
 		Addr:    ":9091",

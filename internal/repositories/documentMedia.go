@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	"realTimeEditor/internal/model"
 	"time"
 
@@ -18,12 +19,10 @@ func NewDocumentMediaRepository(db *gorm.DB) *DocumentMediaRepository {
 	}
 }
 
-// Create new media record
 func (r *DocumentMediaRepository) Create(media *model.DocumentMedia) error {
 	return r.db.Create(media).Error
 }
 
-// Get media by ID
 func (r *DocumentMediaRepository) GetOne(id uuid.UUID) (*model.DocumentMedia, error) {
 	var media model.DocumentMedia
 	err := r.db.Where("id = ?", id).First(&media).Error
@@ -33,7 +32,6 @@ func (r *DocumentMediaRepository) GetOne(id uuid.UUID) (*model.DocumentMedia, er
 	return &media, nil
 }
 
-// Get media by DocumentID
 func (r *DocumentMediaRepository) GetByDocumentID(documentID uuid.UUID) ([]model.DocumentMedia, error) {
 	var media []model.DocumentMedia
 	err := r.db.Where("document_id = ?", documentID).Find(&media).Error
@@ -51,12 +49,25 @@ func (r *DocumentMediaRepository) Update(id uuid.UUID, updated *model.DocumentMe
 		Updates(updated).Error
 }
 
-// Delete media by ID
 func (r *DocumentMediaRepository) Delete(id uuid.UUID) error {
 	return r.db.Delete(&model.DocumentMedia{}, "id = ?", id).Error
 }
 
-// Delete all media by DocumentID
 func (r *DocumentMediaRepository) DeleteByDocumentID(documentID uuid.UUID) error {
 	return r.db.Where("document_id = ?", documentID).Delete(&model.DocumentMedia{}).Error
+}
+
+func (s *DocumentMediaRepository) GetExpiredReceipts(maxAge time.Duration) ([]model.DocumentMedia, error) {
+	var receipts []model.DocumentMedia
+	cutoff := time.Now().UTC().Add(-maxAge)
+
+	err := s.db.
+		Where("created_at < ?", cutoff).
+		Find(&receipts).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("error fetching expired receipts: %w", err)
+	}
+
+	return receipts, nil
 }
