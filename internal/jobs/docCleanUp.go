@@ -80,6 +80,12 @@ func (r *DocumentCleanup) CleanupBatch(ctx context.Context) {
 				mu.Unlock()
 			}
 
+			if err := r.DocumentMedia.Delete(medium.ID); err != nil {
+				mu.Lock()
+				deleteErr = append(deleteErr, fmt.Sprintf("Failed to delete %s: %v", medium.PublicID, err))
+				mu.Unlock()
+			}
+
 		}(documentMedium)
 	}
 
