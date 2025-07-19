@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+
 	"realTimeEditor/internal/model"
 	"realTimeEditor/pkg/constants"
 
@@ -34,6 +35,7 @@ func ConnectToDB() {
 
 	if err := db.AutoMigrate(
 		&model.User{}, &model.Document{}, &model.DocumentAccess{}, &model.ForgotPassword{}, &model.DocumentMetadata{},
+		&model.DocumentMedia{},
 	); err != nil {
 		panic(fmt.Sprintf("Error during migration: %v", err))
 	}

@@ -24,6 +24,7 @@ type DocumentController struct {
 	InviteRepository           *repositories.InviteRepository
 	UserRepository             *repositories.UserRepository
 	DocumentMetadataRepository *repositories.DocumentMetaDataRepository
+	DocumentMediaRepository    *repositories.DocumentMediaRepository
 }
 
 func NewDocumentController(
@@ -32,6 +33,7 @@ func NewDocumentController(
 	inviteRepository *repositories.InviteRepository,
 	userRepository *repositories.UserRepository,
 	documentMetadataRepository *repositories.DocumentMetaDataRepository,
+	documentMediaRepository *repositories.DocumentMediaRepository,
 ) *DocumentController {
 	return &DocumentController{
 		DocumentRepository:         documentRepository,
@@ -39,6 +41,7 @@ func NewDocumentController(
 		InviteRepository:           inviteRepository,
 		UserRepository:             userRepository,
 		DocumentMetadataRepository: documentMetadataRepository,
+		DocumentMediaRepository:    documentMediaRepository,
 	}
 }
 
@@ -752,10 +755,68 @@ func (d *DocumentController) AcceptInvitation(c *gin.Context) {
 		AccountSetupLink: accountSetupUrl,
 	})
 	if err != nil {
+		log.Printf("Error: %s", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "invite accepted"})
 }
 
-//TODO: Work on the accept invitation end-point and consider logging non existing users email to notify them to sign up
+func (d *DocumentController) GenerateDocPDF(c *gin.Context) {
+	user, exists := c.Get("user")
+
+	if !exists {
+		c.JSON(http.StatusForbidden, gin.H{"error": "invalid session"})
+		return
+	}
+
+	_, ok := user.(model.User)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user type"})
+		return
+	}
+
+	documentId := c.Param("documentId")
+	documentUUID, err := uuid.Parse(documentId)
+	if err != nil {
+		log.Printf("Error: %s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	var document model.Document
+	if err := d.DocumentRepository.GetOne(documentUUID, &document); err != nil {
+		log.Printf("Error: %s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	var documentMetaData model.DocumentMetadata
+	if err := d.DocumentMetadataRepository.GetOneByDocId(documentUUID, &documentMetaData); err != nil {
+		log.Printf("Error: %s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	uploaded, err := utils.DocumentHandler(&document, &documentMetaData)
+	if err != nil {
+		log.Printf("Error: %s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	documentMedia := model.DocumentMedia{
+		DocumentID: document.ID,
+		PublicID:   uploaded.PublicID,
+		SecureURL:  uploaded.SecureURL,
+		Format:     "pdf",
+	}
+
+	if err := d.DocumentMediaRepository.Create(&documentMedia); err != nil {
+		log.Printf("Error: %s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Document generated", "documentLink": uploaded.SecureURL})
+}

@@ -52,10 +52,12 @@ func main() {
 	forgotPasswordRepository := repositories.NewForgotPasswordRepository(config.DB)
 	inviteRepository := repositories.NewInviteRepository(config.DB)
 	documentMetaDataRepository := repositories.NewDocumentMetaDataRepository(config.DB)
+	documentMediaRepository := repositories.NewDocumentMediaRepository(config.DB)
 
 	userController := controllers.NewUserHandler(userRepository, forgotPasswordRepository)
 	documentController := controllers.NewDocumentController(
 		documentRepository, documentAccessRepository, inviteRepository, userRepository, documentMetaDataRepository,
+		documentMediaRepository,
 	)
 	documentMetaDataController := controllers.NewDocumentMetaDataController(documentRepository, documentMetaDataRepository)
 
