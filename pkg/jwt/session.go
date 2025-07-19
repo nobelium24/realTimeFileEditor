@@ -25,9 +25,9 @@ func NewSession() (*Session, error) {
 func (s *Session) GenerateAccessToken(email string) (string, error) {
 	claims := jwt.MapClaims{
 		"email":      email,
-		"exp":        time.Now().UTC().Add(time.Hour * 24).Unix(),
+		"exp":        time.Now().UTC().UTC().Add(time.Hour * 24).Unix(),
 		"token_type": "access",
-		"iat":        time.Now().UTC().Unix(),
+		"iat":        time.Now().UTC().UTC().Unix(),
 		"iss":        "nobelium24",
 	}
 
@@ -42,9 +42,9 @@ func (s *Session) GenerateAccessToken(email string) (string, error) {
 func (s *Session) GenerateRefreshToken(email string) (string, error) {
 	claims := jwt.MapClaims{
 		"email":      email,
-		"exp":        time.Now().UTC().Add(time.Hour * 24 * 30).Unix(),
+		"exp":        time.Now().UTC().UTC().Add(time.Hour * 24 * 30).Unix(),
 		"token_type": "refresh",
-		"iat":        time.Now().UTC().Unix(),
+		"iat":        time.Now().UTC().UTC().Unix(),
 		"iss":        "nobelium24",
 	}
 

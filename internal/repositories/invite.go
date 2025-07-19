@@ -43,7 +43,7 @@ func (i *InviteRepository) Update(invite *model.Invite, id uuid.UUID) error {
 	if err := i.db.Where("id = ?", id).Error; err != nil {
 		return err
 	}
-	invite.UpdatedAt = time.Now().UTC()
+	invite.UpdatedAt = time.Now().UTC().UTC()
 	return i.db.Model(&model.Invite{}).
 		Where("id = ?", id).Updates(invite).Error
 }

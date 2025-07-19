@@ -43,7 +43,7 @@ func (d *DocumentMetaDataRepository) Update(metaData *model.DocumentMetadata, id
 	if err := d.db.Where("id = ?", id).Error; err != nil {
 		return err
 	}
-	metaData.UpdatedAt = time.Now().UTC()
+	metaData.UpdatedAt = time.Now().UTC().UTC()
 	return d.db.Model(&model.DocumentMetadata{}).
 		Where("id = ?", id).Updates(metaData).Error
 }

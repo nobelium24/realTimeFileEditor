@@ -19,10 +19,11 @@ import (
 )
 
 type DocumentController struct {
-	DocumentRepository       *repositories.DocumentRepository
-	DocumentAccessRepository *repositories.DocumentAccessRepository
-	InviteRepository         *repositories.InviteRepository
-	UserRepository           *repositories.UserRepository
+	DocumentRepository         *repositories.DocumentRepository
+	DocumentAccessRepository   *repositories.DocumentAccessRepository
+	InviteRepository           *repositories.InviteRepository
+	UserRepository             *repositories.UserRepository
+	DocumentMetadataRepository *repositories.DocumentMetaDataRepository
 }
 
 func NewDocumentController(
@@ -30,12 +31,14 @@ func NewDocumentController(
 	documentAccessRepository *repositories.DocumentAccessRepository,
 	inviteRepository *repositories.InviteRepository,
 	userRepository *repositories.UserRepository,
+	documentMetadataRepository *repositories.DocumentMetaDataRepository,
 ) *DocumentController {
 	return &DocumentController{
-		DocumentRepository:       documentRepository,
-		DocumentAccessRepository: documentAccessRepository,
-		InviteRepository:         inviteRepository,
-		UserRepository:           userRepository,
+		DocumentRepository:         documentRepository,
+		DocumentAccessRepository:   documentAccessRepository,
+		InviteRepository:           inviteRepository,
+		UserRepository:             userRepository,
+		DocumentMetadataRepository: documentMetadataRepository,
 	}
 }
 
@@ -79,6 +82,16 @@ func (d *DocumentController) Create(c *gin.Context) {
 		return
 	}
 
+	documentMetaData := model.DocumentMetadata{
+		DocumentID: newDocument.ID,
+		Version:    1,
+	}
+	if err := d.DocumentMetadataRepository.Create(&documentMetaData); err != nil {
+		log.Printf("Error creating document: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
 	c.JSON(http.StatusCreated, gin.H{"message": "Document created successfully"})
 }
 
@@ -107,7 +120,7 @@ func (d *DocumentController) GetUserCreatedDocuments(c *gin.Context) {
 
 func (d *DocumentController) GetSingleDocument(c *gin.Context) {
 	user, exists := c.Get("user")
-	documentId := c.Param("historyId")
+	documentId := c.Param("documentId")
 
 	if !exists {
 		c.JSON(http.StatusForbidden, gin.H{"error": "invalid session"})
@@ -123,7 +136,7 @@ func (d *DocumentController) GetSingleDocument(c *gin.Context) {
 	documentUUID, err := uuid.Parse(documentId)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching document"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid id"})
 		return
 	}
 
@@ -171,7 +184,7 @@ func (d *DocumentController) RevokeAccess(c *gin.Context) {
 	documentAccessUUID, err := uuid.Parse(documentAccessId)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document access ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid id"})
 		return
 	}
 
@@ -235,7 +248,7 @@ func (d *DocumentController) DeleteDocument(c *gin.Context) {
 	documentUUID, err := uuid.Parse(documentId)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document access ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid id"})
 		return
 	}
 
@@ -283,7 +296,7 @@ func (d *DocumentController) ModifyAccess(c *gin.Context) {
 	documentAccessUUID, err := uuid.Parse(documentAccessId)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document access ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid id"})
 		return
 	}
 
@@ -391,7 +404,7 @@ func (d *DocumentController) FetchCollaborators(c *gin.Context) {
 	documentUUID, err := uuid.Parse(documentId)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document access ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid id"})
 		return
 	}
 
@@ -439,14 +452,14 @@ func (d *DocumentController) TransferOwnership(c *gin.Context) {
 	documentUUID, err := uuid.Parse(documentId)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document access ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid id"})
 		return
 	}
 
 	recipientUUID, err := uuid.Parse(recipientId)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document access ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid id"})
 		return
 	}
 
@@ -556,7 +569,7 @@ func (d *DocumentController) InviteCollaborator(c *gin.Context) {
 	documentUUID, err := uuid.Parse(payload.DocumentId)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document access ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid id"})
 		return
 	}
 

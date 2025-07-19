@@ -123,7 +123,7 @@ func (p *PDFService) GenerateDocumentPDF(document *model.Document, m *model.Docu
 	// Footer
 	pdf.SetFont(fontName, "I", 8)
 	pdf.SetXY(0, 280)
-	pdf.CellFormat(0, 5, fmt.Sprintf("Generated on %s", time.Now().Format("January 2, 2006")), "", 1, "C", false, 0, "")
+	pdf.CellFormat(0, 5, fmt.Sprintf("Generated on %s", time.Now().UTC().Format("January 2, 2006")), "", 1, "C", false, 0, "")
 
 	var buf bytes.Buffer
 	err := pdf.Output(&buf)

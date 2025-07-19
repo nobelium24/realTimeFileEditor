@@ -128,7 +128,7 @@ func (u *UserController) Create(c *gin.Context) {
 
 	err = handlers.SendMail(user.Email, "welcome", "Welcome Mail", handlers.WelcomeMessage{
 		FullName: fmt.Sprintf("%s %s", *user.FirstName, *user.LastName),
-		Year:     time.Now().UTC().Year(),
+		Year:     time.Now().UTC().UTC().Year(),
 	})
 	if err != nil {
 		log.Printf("Error sending welcome mail: %s", err.Error())
@@ -215,7 +215,7 @@ func (u *UserController) CompleteAccount(c *gin.Context) {
 
 	err = handlers.SendMail(user.Email, "welcome", "Welcome to FileEditor", handlers.WelcomeMessage{
 		FullName: fmt.Sprintf("%s %s", userInput.FirstName, userInput.LastName),
-		Year:     time.Now().UTC().Year(),
+		Year:     time.Now().UTC().UTC().Year(),
 	})
 	if err != nil {
 		log.Printf("Error sending welcome email: %s", err)
@@ -442,7 +442,7 @@ func (u *UserController) ForgotPassword(c *gin.Context) {
 	err = handlers.SendMail(user.Email, "forgotPassword", "Password Reset Mail", handlers.PasswordResetCode{
 		FullName:  fmt.Sprintf("%s %s", *existingUser.FirstName, *existingUser.LastName),
 		ResetCode: resetCode,
-		Year:      time.Now().UTC().Year(),
+		Year:      time.Now().UTC().UTC().Year(),
 	})
 	if err != nil {
 		log.Printf("Error:%s", err)

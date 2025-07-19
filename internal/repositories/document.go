@@ -40,7 +40,7 @@ func (d *DocumentRepository) Update(document *model.Document, id uuid.UUID) erro
 	if err := d.db.Where("id = ?", id).First(document).Error; err != nil {
 		return err
 	}
-	document.UpdatedAt = time.Now().UTC()
+	document.UpdatedAt = time.Now().UTC().UTC()
 	return d.db.Model(&model.Document{}).
 		Where("id = ?", id).Updates(document).Error
 }
@@ -49,7 +49,7 @@ func (d *DocumentRepository) UpdateWithTransaction(tx *gorm.DB, document *model.
 	if err := tx.Where("id = ?", id).First(document).Error; err != nil {
 		return err
 	}
-	document.UpdatedAt = time.Now().UTC()
+	document.UpdatedAt = time.Now().UTC().UTC()
 	return tx.Model(&model.Document{}).
 		Where("id = ?", id).Updates(document).Error
 }

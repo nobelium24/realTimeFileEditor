@@ -1,8 +1,11 @@
-package cmd
+package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"realTimeEditor/config"
 	"realTimeEditor/internal/controllers"
 	"realTimeEditor/internal/middlewares"
@@ -48,9 +51,13 @@ func main() {
 	documentAccessRepository := repositories.NewDocumentAccessRepository(config.DB)
 	forgotPasswordRepository := repositories.NewForgotPasswordRepository(config.DB)
 	inviteRepository := repositories.NewInviteRepository(config.DB)
+	documentMetaDataRepository := repositories.NewDocumentMetaDataRepository(config.DB)
 
 	userController := controllers.NewUserHandler(userRepository, forgotPasswordRepository)
-	documentController := controllers.NewDocumentController(documentRepository, documentAccessRepository, inviteRepository, userRepository)
+	documentController := controllers.NewDocumentController(
+		documentRepository, documentAccessRepository, inviteRepository, userRepository, documentMetaDataRepository,
+	)
+	documentMetaDataController := controllers.NewDocumentMetaDataController(documentRepository, documentMetaDataRepository)
 
 	// Middleware
 	authMiddleware := &middlewares.AuthMiddleware{
@@ -64,10 +71,11 @@ func main() {
 	}
 
 	container := router.RouterContainer{
-		UserController:     userController,
-		DocumentController: documentController,
-		AuthMiddleware:     authMiddleware,
-		Session:            session,
+		UserController:             userController,
+		DocumentController:         documentController,
+		DocumentMetadataController: documentMetaDataController,
+		AuthMiddleware:             authMiddleware,
+		Session:                    session,
 	}
 
 	router := CreateRouter(&container)
@@ -77,10 +85,22 @@ func main() {
 		Handler: router,
 	}
 
+	// Start server in a goroutine
 	go func() {
 		log.Println("Starting server on port 9091...")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server error: %v", err)
 		}
 	}()
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+
+	log.Println("Shutting down server...")
+
+	if err := server.Shutdown(context.Background()); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
 }

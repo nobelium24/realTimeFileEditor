@@ -15,12 +15,13 @@ type DocumentAccess struct {
 	CreatedAt      time.Time `gorm:"type:timestamp" json:"createdAt"`
 	UpdatedAt      time.Time `gorm:"type:timestamp" json:"updatedAt"`
 
-	Document Document `gorm:"foreignKey:DocumentID"`
-	User     User     `gorm:"foreignKey:CollaboratorID"`
+	Document Document `gorm:"foreignKey:DocumentId"`
+	User     User     `gorm:"foreignKey:CollaboratorId"`
 }
 
-func (d *DocumentAccess) BeforeCreate(tx *gorm.DB) {
+func (d *DocumentAccess) BeforeCreate(tx *gorm.DB) error {
 	d.ID = uuid.New()
-	d.CreatedAt = time.Now()
-	d.UpdatedAt = time.Now()
+	d.CreatedAt = time.Now().UTC()
+	d.UpdatedAt = time.Now().UTC()
+	return nil
 }

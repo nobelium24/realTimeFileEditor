@@ -17,7 +17,7 @@ type ForgotPassword struct {
 
 func (forgotPassword *ForgotPassword) BeforeCreate(tx *gorm.DB) error {
 	forgotPassword.ID = uuid.New()
-	forgotPassword.CreatedAt = time.Now().UTC()
-	forgotPassword.UpdatedAt = time.Now().UTC()
+	forgotPassword.CreatedAt = time.Now().UTC().UTC()
+	forgotPassword.UpdatedAt = time.Now().UTC().UTC()
 	return nil
 }

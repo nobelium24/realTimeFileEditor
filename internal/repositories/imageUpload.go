@@ -51,7 +51,7 @@ func CloudinaryUploaderStream(stream io.Reader, fileName string, resourceType Re
 	}
 
 	// Generate UUID for the public ID
-	timestamp := time.Now().UTC().Unix() // Unix timestamp in seconds
+	timestamp := time.Now().UTC().UTC().Unix() // Unix timestamp in seconds
 	uuidStr := strings.ReplaceAll(uuid.New().String(), "-", "")
 	publicID := fmt.Sprintf("file_%d_%s", timestamp, uuidStr)
 

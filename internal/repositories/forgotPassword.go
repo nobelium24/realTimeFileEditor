@@ -43,7 +43,7 @@ func (f *ForgotPasswordRepository) Update(forgotPassword *model.ForgotPassword, 
 	if err := f.db.Where("id = ?", id).Error; err != nil {
 		return err
 	}
-	forgotPassword.UpdatedAt = time.Now().UTC()
+	forgotPassword.UpdatedAt = time.Now().UTC().UTC()
 	return f.db.Model(&model.ForgotPassword{}).
 		Where("id = ?", id).Updates(forgotPassword).Error
 }

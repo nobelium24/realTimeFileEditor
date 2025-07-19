@@ -9,13 +9,15 @@ import (
 )
 
 type RouterContainer struct {
-	UserController     *controllers.UserController
-	DocumentController *controllers.DocumentController
-	AuthMiddleware     *middlewares.AuthMiddleware
-	Session            *jwt.Session
+	UserController             *controllers.UserController
+	DocumentController         *controllers.DocumentController
+	DocumentMetadataController *controllers.DocumentMetadataController
+	AuthMiddleware             *middlewares.AuthMiddleware
+	Session                    *jwt.Session
 }
 
 func (rc *RouterContainer) Register(r *gin.Engine) {
 	UserRouter(r, rc.UserController, rc.AuthMiddleware, rc.Session)
 	DocumentRouter(r, rc.DocumentController, rc.AuthMiddleware, rc.Session)
+	DocumentMetadataRouter(r, rc.DocumentMetadataController, rc.AuthMiddleware, rc.Session)
 }

@@ -69,7 +69,7 @@ func (d *DocumentAccessRepository) Update(documentAccess *model.DocumentAccess, 
 	if err := d.db.Where("id = ?", id).Error; err != nil {
 		return err
 	}
-	documentAccess.UpdatedAt = time.Now().UTC()
+	documentAccess.UpdatedAt = time.Now().UTC().UTC()
 	return d.db.Model(&model.DocumentAccess{}).
 		Where("id = ?", id).Updates(documentAccess).Error
 }
@@ -111,7 +111,7 @@ func (d *DocumentAccessRepository) UpdateWithTransaction(tx *gorm.DB, document *
 	if err := tx.Where("id = ?", id).First(document).Error; err != nil {
 		return err
 	}
-	document.UpdatedAt = time.Now().UTC()
+	document.UpdatedAt = time.Now().UTC().UTC()
 	return tx.Model(&model.DocumentAccess{}).
 		Where("id = ?", id).Updates(document).Error
 }
