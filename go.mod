@@ -60,5 +60,6 @@ require (
 	github.com/googollee/go-socket.io v1.7.0
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/jung-kurt/gofpdf v1.16.2
 	golang.org/x/text v0.26.0 // indirect
 )
