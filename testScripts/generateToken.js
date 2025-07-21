@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const secretKey = "u2hdu!d83@2u8&9ue8U*U*U98+8uU@WWI"; 
 
 const payload = {
-    email: "testuser@example.com",
+    email: "test@ram.com",
     token_type: "access",
     iss: "nobelium24",
     iat: Math.floor(Date.now() / 1000),

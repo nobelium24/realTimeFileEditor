@@ -1,17 +1,22 @@
 // client.js
-import { io } from 'socket.io-client';
-import { v4 as uuidv4 } from 'uuid';
+const io = require('socket.io-client');
+// import { v4 as uuidv4 } from 'uuid';
 
-const DOC_ID = uuidv4(); // simulate a random doc ID
-const USER_ID = uuidv4(); // simulate a user ID
-const TOKEN = "mocked.jwt.token"; // Replace with a real JWT later
+const DOC_ID = "45236245-348f-45e7-81fa-6432d6a34362"; // simulate a random doc ID
+const USER_ID = "20b89c43-2009-4220-b032-23c758820cb2";
+const TOKEN = "";
+const localUrl = "http://localhost:9091";
 
-const socket = io('http://localhost:3001/ws', {
+const socket = io(`${localUrl}/ws`, {
     extraHeaders: {
-        Authorization: `Bearer ${TOKEN}`,
+        // Authorization: `Bearer ${TOKEN}`,
+        Authorization: TOKEN
     },
     transports: ['websocket'],
+    forceNew: true,
+    reconnectionAttempts: 5
 });
+
 
 socket.on('connect', () => {
     console.log('✅ Connected to WebSocket server');

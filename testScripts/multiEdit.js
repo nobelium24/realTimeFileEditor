@@ -1,18 +1,21 @@
 // client-multi-edits.js
-import { io } from "socket.io-client";
-import { v4 as uuidv4 } from "uuid";
+const io = require('socket.io-client');
 
 // Mock JWT for testing — replace with a real one when ready
-const MOCK_JWT = "your-mock-jwt-token-here";
+const MOCK_JWT = "";
 
 // Document ID to test with (replace with actual existing ID in DB)
-const DOCUMENT_ID = "your-document-id-here";
+const DOCUMENT_ID = "45236245-348f-45e7-81fa-6432d6a34362";
+const localUrl = "http://localhost:9091/ws"
 
-const socket = io("ws://localhost:3001", {
-    path: "/ws",
-    auth: {
-        token: MOCK_JWT,
+const socket = io(`${localUrl}/ws`, {
+    extraHeaders: {
+        // Authorization: `Bearer ${TOKEN}`,
+        Authorization: MOCK_JWT
     },
+    transports: ['websocket'],
+    forceNew: true,
+    reconnectionAttempts: 5
 });
 
 socket.on("connect", () => {
