@@ -21,21 +21,26 @@ func ConnectToDB() {
 		return
 	}
 
-	sslCertPath, err := filepath.Abs(envVars.SSL_CERT_PATH)
-	if err != nil {
-		log.Printf("Error resolving SSL_CERT_PATH: %v\n", err)
-		return
+	dbUri := envVars.DB_URI
+
+	// Append SSL cert only if provided (for Aiven or other managed DBs)
+	if envVars.SSL_CERT_PATH != "" {
+		sslCertPath, err := filepath.Abs(envVars.SSL_CERT_PATH)
+		if err != nil {
+			log.Printf("Error resolving SSL_CERT_PATH: %v\n", err)
+			return
+		}
+		dbUri = fmt.Sprintf("%s&sslrootcert=%s", dbUri, sslCertPath)
 	}
 
-	dbUri := fmt.Sprintf("%s&sslrootcert=%s", envVars.DB_URI, sslCertPath)
 	db, err := gorm.Open(postgres.Open(dbUri), &gorm.Config{})
 	if err != nil {
 		panic(fmt.Sprintf("Error connecting to database: %v", err))
 	}
 
 	if err := db.AutoMigrate(
-		&model.User{}, &model.Document{}, &model.DocumentAccess{}, &model.ForgotPassword{}, &model.DocumentMetadata{},
-		&model.DocumentMedia{},
+		&model.User{}, &model.Document{}, &model.DocumentAccess{},
+		&model.ForgotPassword{}, &model.DocumentMetadata{}, &model.DocumentMedia{},
 	); err != nil {
 		panic(fmt.Sprintf("Error during migration: %v", err))
 	}

@@ -68,11 +68,6 @@ func (s *Session) VerifyAccessToken(tokenString string) (string, error) {
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		// Check token type
-		if tokenType, ok := claims["role"].(string); !ok || tokenType != "member" {
-			return "", fmt.Errorf("invalid token: expecting member token")
-		}
-
 		if tokenType, ok := claims["token_type"].(string); !ok || tokenType != "access" {
 			return "", fmt.Errorf("invalid token type: expected access token")
 		}
@@ -98,11 +93,6 @@ func (s *Session) VerifyRefreshToken(tokenString string) (string, error) {
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		// Check token type
-		if tokenType, ok := claims["role"].(string); !ok || tokenType != "member" {
-			return "", fmt.Errorf("invalid token: expecting member token")
-		}
-
 		if tokenType, ok := claims["token_type"].(string); !ok || tokenType != "refresh" {
 			return "", fmt.Errorf("invalid token type: expected refresh token")
 		}

@@ -24,8 +24,8 @@ WORKDIR /
 COPY --from=build-stage /docker-fileEditor /docker-fileEditor
 
 # Swagger
-# COPY --from=build-stage /app/api/swagger.yaml /api/swagger.yaml
-# COPY --from=build-stage /app/api/swagger-ui /api/swagger-ui
+COPY --from=build-stage /app/api/swagger.yaml /api/swagger.yaml
+COPY --from=build-stage /app/api/swagger-ui /api/swagger-ui
 
 # Email templates
 COPY --from=build-stage /app/templates/forgotPassword.html /templates/forgotPassword.html

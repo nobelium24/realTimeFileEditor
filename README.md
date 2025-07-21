@@ -81,8 +81,19 @@ cd realTimeFileEditor
 Create a `.env` file with the following content:
 
 ```
-PORT=8080
-DATABASE_URL=postgres://user:password@localhost:5432/realtimedb?sslmode=disable
+DB_URI=postgres://user:password@localhost:5432/realtimedb?sslmode=disable
+SSL_CERT_PATH=ca.pem
+SALT=test24Ram@Inc
+JWT_SECRET=u2hdu!d83@2u8&9ue8U*U*U98+8uU@WWI
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=ogunbaja24@gmail.com
+SMTP_PASS=qqzn iacu ucpk uzlr 
+CLOUD_NAME=woleogunba
+API_KEY=473735162712444
+API_SECRET=lB6yiWTohmHQDZ4YVQBHveB1TG8
+FE_ROOT_URL=test
+
 ```
 
 ### 3. Run PostgreSQL
@@ -100,21 +111,26 @@ docker run -p 8080:8080 --env-file .env realtime-editor
 Or run locally with Go:
 
 ```bash
-go run main.go
+go run cmd/main.go
 ```
 
 ## 📡 WebSocket Testing
 
-A simple test script is available in the `test/` directory.
+A `testScripts/` folder is available to help test the real-time collaboration functionality without a frontend.
+
+| Script | What it does |
+|--------|---------------|
+| `generateToken.js` | Generates JWT tokens for testing secured endpoints. |
+| `client.js` | Simulates a single client editing a document via WebSocket. |
+| `multiEdit.js` | Simulates multiple users editing a document concurrently. |
+
+To use:
 
 ```bash
-cd test
-node client.js
-```
+cd testScripts
+npm install
+node generateToken.js
 
-You can modify `client.js` to send your own WebSocket events to the backend.
-
----
 
 ## 🛠️ Planned Features
 
