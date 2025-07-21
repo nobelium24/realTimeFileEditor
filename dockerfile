@@ -29,13 +29,18 @@ COPY --from=build-stage /app/api/swagger-ui /api/swagger-ui
 
 # Email templates
 COPY --from=build-stage /app/templates/forgotPassword.html /templates/forgotPassword.html
-COPY --from=build-stage /app/templates/welcome.html /templates/invite.html
-COPY --from=build-stage /app/templates/welcome.html /templates/accountCompletion.html
+COPY --from=build-stage /app/templates/invite.html /templates/invite.html
+COPY --from=build-stage /app/templates/accountCompletion.html /templates/accountCompletion.html
 COPY --from=build-stage /app/templates/welcome.html /templates/welcome.html
 
 # Font assets
 COPY --from=build-stage /app/assets/fonts/Roboto-Bold.ttf /assets/fonts/Roboto-Bold.ttf
 COPY --from=build-stage /app/assets/fonts/Roboto-Regular.ttf /assets/fonts/Roboto-Regular.ttf
+
+# Tests
+COPY --from=build-stage /app/testScripts/client.js /testScripts/client.js
+COPY --from=build-stage /app/testScripts/generateToken.js /testScripts/generateToken.js
+COPY --from=build-stage /app/testScripts/multiEdit.js /testScripts/multiEdit.js
 
 # Other
 COPY --from=build-stage /app/ca.pem /ca.pem
