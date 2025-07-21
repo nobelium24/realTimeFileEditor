@@ -88,14 +88,14 @@ DB_URI=postgres://postgres:postgres@localhost:5432/realtime_editor?sslmode=disab
 SSL_CERT_PATH=
 
 SALT=test24Ram@Inc
-JWT_SECRET=u2hdu!d83@2u8&9ue8U*U*U98+8uU@WWI
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=465
-SMTP_USER=ogunbaja24@gmail.com
-SMTP_PASS=qqzn iacu ucpk uzlr 
-CLOUD_NAME=woleogunba
-API_KEY=473735162712444
-API_SECRET=lB6yiWTohmHQDZ4YVQBHveB1TG8
+JWT_SECRET=
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USER= 
+SMTP_PASS=
+CLOUD_NAME=
+API_KEY=
+API_SECRET=
 FE_ROOT_URL=test
 
 ```

@@ -1,7 +1,7 @@
 // generateToken.js
 const jwt = require("jsonwebtoken");
 
-const secretKey = "u2hdu!d83@2u8&9ue8U*U*U98+8uU@WWI"; // Match with env.JWT_SECRET
+const secretKey = "u2hdu!d83@2u8&9ue8U*U*U98+8uU@WWI"; 
 
 const payload = {
     email: "testuser@example.com",
