@@ -15,3 +15,721 @@ servers:
   - url: http://localhost:9091
     description: Local development server
 
+paths:
+  /document/create:
+    post:
+      tags:
+        - Documents
+      summary: Create a new document
+      description: Create a new document with the authenticated user as the creator
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentCreateRequest'
+      responses:
+        '201':
+          description: Document created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Document created successfully
+        '400':
+          description: Invalid request payload
+        '403':
+          description: Invalid session
+        '500':
+          description: Internal server error
+
+  /document/user-created-docs:
+    get:
+      tags:
+        - Documents
+      summary: Get user's created documents
+      description: Retrieve all documents created by the authenticated user
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Documents fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Documents fetched
+                  documents:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Document'
+        '403':
+          description: Invalid session
+        '500':
+          description: Internal server error
+
+  /document/get-one/{documentId}:
+    get:
+      tags:
+        - Documents
+      summary: Get a single document
+      description: Retrieve a single document by ID if the user has access
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Document fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Document fetched
+                  document:
+                    $ref: '#/components/schemas/Document'
+        '400':
+          description: Invalid ID or document not found
+        '403':
+          description: Invalid session or no access to document
+        '500':
+          description: Internal server error
+
+  /document/revoke-access/{documentAccessId}:
+    delete:
+      tags:
+        - Document Access
+      summary: Revoke document access
+      description: Revoke a collaborator's access to a document (creator only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: documentAccessId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Access revoked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: access revoked successfully
+        '400':
+          description: Invalid ID or cannot revoke creator access
+        '403':
+          description: Only creator can revoke access
+        '404':
+          description: Document access not found
+        '500':
+          description: Internal server error
+
+  /document/delete/{id}:
+    delete:
+      tags:
+        - Documents
+      summary: Delete a document
+      description: Delete a document (creator only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Document deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Document deleted
+        '400':
+          description: Invalid ID or document not found
+        '401':
+          description: Not authorized to delete
+        '403':
+          description: Invalid session
+        '500':
+          description: Internal server error
+
+  /document/modify-access/{documentAccessId}/{newRole}:
+    patch:
+      tags:
+        - Document Access
+      summary: Modify collaborator access role
+      description: Change a collaborator's role for a document (creator only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: documentAccessId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: newRole
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [edit, read]
+      responses:
+        '200':
+          description: Role updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Role updated
+        '400':
+          description: Invalid ID or role
+        '403':
+          description: Only creator can modify roles or cannot set multiple creators
+        '404':
+          description: Document access not found
+        '500':
+          description: Internal server error
+
+  /document/all:
+    get:
+      tags:
+        - Documents
+      summary: Get all accessible documents
+      description: Retrieve all documents the user has access to (as creator or collaborator)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Documents fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Documents fetched
+                  documents:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentAccess'
+        '403':
+          description: Invalid session
+        '500':
+          description: Internal server error
+
+  /document/collaborators/{id}:
+    get:
+      tags:
+        - Document Access
+      summary: Get document collaborators
+      description: Retrieve all collaborators for a specific document
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Collaborators fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Collaborators fetched
+                  collaborators:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentAccess'
+        '400':
+          description: Invalid ID or no access found
+        '401':
+          description: No permission to view collaborators
+        '403':
+          description: Invalid session
+        '500':
+          description: Internal server error
+
+  /document/transfer-ownership/{documentId}/{recipientId}:
+    patch:
+      tags:
+        - Documents
+      summary: Transfer document ownership
+      description: Transfer ownership of a document to another collaborator (creator only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: recipientId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Ownership transferred successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Document ownership transferred
+        '400':
+          description: Invalid IDs or recipient already owns document
+        '401':
+          description: Not authorized to transfer ownership
+        '404':
+          description: Document or access not found
+        '500':
+          description: Internal server error
+
+  /document/invite-collaborator:
+    post:
+      tags:
+        - Document Access
+      summary: Invite a collaborator
+      description: Invite a user to collaborate on a document via email
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                documentId:
+                  type: string
+                  format: uuid
+                email:
+                  type: string
+                  format: email
+                role:
+                  type: string
+                  enum: [edit, read]
+      responses:
+        '200':
+          description: Invite sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Invite sent successfully
+        '400':
+          description: Invalid request payload
+        '403':
+          description: Invalid session
+        '404':
+          description: Document not found
+        '500':
+          description: Internal server error
+
+  /document/generate-pdf/{documentId}:
+    get:
+      tags:
+        - Documents
+      summary: Generate document PDF
+      description: Generate a PDF version of the document
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: PDF generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Document generated
+                  documentLink:
+                    type: string
+                    format: url
+                    example: https://example.com/document.pdf
+        '403':
+          description: Invalid session
+        '500':
+          description: Internal server error
+
+  /invite/accept/{token}:
+    get:
+      tags:
+        - Document Access
+      summary: Accept invitation
+      description: Accept a document collaboration invitation
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invite accepted successfully
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        example: Account setup complete
+                      accessToken:
+                        type: string
+                      refreshToken:
+                        type: string
+                      redirectTo:
+                        type: string
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        example: invite accepted
+        '404':
+          description: Invitation not found
+        '500':
+          description: Internal server error
+
+          paths:
+  /document-metadata/create:
+    post:
+      tags:
+        - Document Metadata
+      summary: Create document metadata
+      description: Create metadata for a document
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentMetadata'
+      responses:
+        '201':
+          description: Document metadata created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Document metadata created successfully
+        '400':
+          description: Invalid request payload
+        '403':
+          description: Invalid session
+        '500':
+          description: Internal server error
+
+  /document-metadata/get-one/{documentId}:
+    get:
+      tags:
+        - Document Metadata
+      summary: Get document metadata
+      description: Retrieve metadata for a specific document
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Document metadata fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Document metadata fetched
+                  metadata:
+                    $ref: '#/components/schemas/DocumentMetadata'
+        '400':
+          description: Invalid ID or metadata not found
+        '403':
+          description: Invalid session
+        '500':
+          description: Internal server error
+
+  /document-metadata/update/{documentMetadataId}:
+    patch:
+      tags:
+        - Document Metadata
+      summary: Update document metadata
+      description: Update metadata for a document
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: documentMetadataId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentMetadata'
+      responses:
+        '200':
+          description: Document metadata updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Document metadata updated
+        '400':
+          description: Invalid ID or request payload
+        '403':
+          description: Invalid session
+        '500':
+          description: Internal server error
+
+  /document-metadata/delete/{documentMetadataId}:
+    delete:
+      tags:
+        - Document Metadata
+      summary: Delete document metadata
+      description: Delete metadata for a document
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: documentMetadataId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Document metadata deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Document metadata deleted
+        '400':
+          description: Invalid ID
+        '403':
+          description: Invalid session
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    DocumentMetadata:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        documentId:
+          type: string
+          format: uuid
+        version:
+          type: integer
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Metadata:
+      type: object
+      properties:
+        font:
+          type: string
+          example: Arial
+        fontSize:
+          type: number
+          format: float
+          example: 12.0
+        lineSpacing:
+          type: number
+          format: float
+          example: 1.5
+        marginTop:
+          type: number
+          format: float
+          example: 1.0
+        marginLeft:
+          type: number
+          format: float
+          example: 1.0
+        marginRight:
+          type: number
+          format: float
+          example: 1.0
+        marginBottom:
+          type: number
+          format: float
+          example: 1.0
+
+    Document:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        content:
+          type: string
+        userId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DocumentCreateRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+
+    DocumentAccess:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        collaboratorId:
+          type: string
+          format: uuid
+        documentId:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [creator, edit, read]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        document:
+          $ref: '#/components/schemas/Document'
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        profilePhoto:
+          $ref: '#/components/schemas/Media'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Media:
+      type: object
+      properties:
+        public_id:
+          type: string
+        secure_url:
+          type: string
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

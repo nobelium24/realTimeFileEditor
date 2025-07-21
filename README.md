@@ -81,8 +81,12 @@ cd realTimeFileEditor
 Create a `.env` file with the following content:
 
 ```
-DB_URI=postgres://user:password@localhost:5432/realtimedb?sslmode=disable
-SSL_CERT_PATH=ca.pem
+# Local PostgreSQL setup (no SSL)
+DB_URI=postgres://postgres:postgres@localhost:5432/realtime_editor?sslmode=disable
+
+# Only needed if using Aiven or managed DBs
+SSL_CERT_PATH=
+
 SALT=test24Ram@Inc
 JWT_SECRET=u2hdu!d83@2u8&9ue8U*U*U98+8uU@WWI
 SMTP_HOST=smtp.gmail.com
