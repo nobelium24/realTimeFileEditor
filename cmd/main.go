@@ -28,6 +28,13 @@ func CreateRouter(container *router.RouterContainer) *gin.Engine {
 		c.Next()
 	})
 
+	r.Static("/swagger-ui", "./api/swagger-ui/dist")
+	r.StaticFile("/swagger.yaml", "./api/swagger.yaml")
+
+	r.GET("/swagger", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/swagger-ui/index.html")
+	})
+
 	container.Register(r)
 	return r
 }
