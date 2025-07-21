@@ -18,6 +18,7 @@ type SocketHandler struct {
 	DocumentAccessRepository *repositories.DocumentAccessRepository
 	SessionService           *jwt.Session
 	UserRepository           *repositories.UserRepository
+	Initialized              bool
 }
 
 func NewSocketHandler(
@@ -31,10 +32,14 @@ func NewSocketHandler(
 		DocumentAccessRepository: documentAccessRepo,
 		SessionService:           session,
 		UserRepository:           userRepo,
+		Initialized:              true,
 	}
 }
 
 func (sh *SocketHandler) RegisterEvents(server *socketio.Server) {
+	if !sh.Initialized {
+		panic("SocketHandler not initialized")
+	}
 	server.OnConnect("/ws", func(s socketio.Conn) error {
 		if s == nil {
 			return errors.New("nil connection")

@@ -64,7 +64,7 @@ func (s *Session) VerifyAccessToken(tokenString string) (string, error) {
 		return []byte(s.JWTSecret), nil
 	})
 	if err != nil {
-		return "", fmt.Errorf("error parsing token: %s", err)
+		return "", fmt.Errorf(" %s", err)
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
