@@ -22,9 +22,9 @@ type DocumentMetadata struct {
 }
 
 type Metadata struct {
-	Font         string  `gorm:"type:varchar" json:"font,omitempty"`             // e.g., "Arial", "Times New Roman"
-	FontSize     float64 `gorm:"type:decimal(2,1)" json:"fontSize,omitempty"`    // e.g., 12.0
-	LineSpacing  float64 `gorm:"type:decimal(2,1)" json:"lineSpacing,omitempty"` // e.g., 1.15
+	Font         string  `gorm:"type:varchar" json:"font,omitempty"`
+	FontSize     float64 `gorm:"type:decimal(2,1)" json:"fontSize,omitempty"`
+	LineSpacing  float64 `gorm:"type:decimal(2,1)" json:"lineSpacing,omitempty"`
 	MarginTop    float64 `gorm:"type:decimal(2,1)" json:"marginTop,omitempty"`
 	MarginLeft   float64 `gorm:"type:decimal(2,1)" json:"marginLeft,omitempty"`
 	MarginRight  float64 `gorm:"type:decimal(2,1)" json:"marginRight,omitempty"`

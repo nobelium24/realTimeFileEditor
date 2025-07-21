@@ -140,14 +140,6 @@ func (sh *SocketHandler) RegisterEvents(server *socketio.Server) {
 			return
 		}
 
-		//TODO: Address this later. TO keep track of edit metadata
-		// type EditPayload struct {
-		// 	DocumentID string          `json:"documentId"`
-		// 	Content    string          `json:"content"`          // updated content or diff/patch
-		// 	Version    int             `json:"version"`          // optional
-		// 	Cursor     *CursorPosition `json:"cursor,omitempty"` // optional
-		// }
-
 		if err := sh.DocumentRepository.Update(&document, docUUID); err != nil {
 			log.Println("Failed to update document:", err)
 			s.Emit("error", "Failed to update document")
