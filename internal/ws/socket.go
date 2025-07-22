@@ -46,6 +46,7 @@ func (sh *SocketHandler) RegisterEvents(server *socketio.Server) {
 		}
 		token := s.RemoteHeader().Get("Authorization")
 		if token == "" {
+			s.Emit("Authentication required")
 			return errors.New("authentication required")
 		}
 
@@ -92,6 +93,8 @@ func (sh *SocketHandler) RegisterEvents(server *socketio.Server) {
 	server.OnEvent("/ws", "edit", func(s socketio.Conn, data map[string]interface{}) {
 		ctx := s.Context().(map[string]string)
 		userId := ctx["userId"]
+		log.Printf("ctx: %s", ctx)
+		log.Printf("data: %s", data)
 
 		docId, ok := data["ID"].(string)
 		if !ok || docId == "" {
@@ -150,6 +153,7 @@ func (sh *SocketHandler) RegisterEvents(server *socketio.Server) {
 			s.Emit("error", "Failed to update document")
 			return
 		}
+		log.Print(document)
 
 		server.BroadcastToRoom("/ws", docId, "document_updated", gin.H{
 			"editorId": userId,

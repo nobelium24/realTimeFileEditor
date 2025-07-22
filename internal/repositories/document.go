@@ -37,13 +37,19 @@ func (d *DocumentRepository) GetUserDocuments(userId uuid.UUID) ([]model.Documen
 	return documents, nil
 }
 
-func (d *DocumentRepository) Update(document *model.Document, id uuid.UUID) error {
-	if err := d.db.Where("id = ?", id).First(document).Error; err != nil {
+func (d *DocumentRepository) Update(updatedDoc *model.Document, id uuid.UUID) error {
+	var existingDoc model.Document
+
+	if err := d.db.First(&existingDoc, "id = ?", id).Error; err != nil {
 		return err
 	}
-	document.UpdatedAt = time.Now().UTC().UTC()
-	return d.db.Model(&model.Document{}).
-		Where("id = ?", id).Updates(document).Error
+
+	// Only update relevant fields
+	existingDoc.Title = updatedDoc.Title
+	existingDoc.Content = updatedDoc.Content
+	existingDoc.UpdatedAt = time.Now().UTC()
+
+	return d.db.Save(&existingDoc).Error
 }
 
 func (d *DocumentRepository) UpdateWithTransaction(tx *gorm.DB, document *model.Document, id uuid.UUID) error {
