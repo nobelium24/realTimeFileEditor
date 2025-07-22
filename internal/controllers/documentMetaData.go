@@ -121,6 +121,17 @@ func (d *DocumentMetadataController) Update(c *gin.Context) {
 		return
 	}
 
+	var existingMetadata model.DocumentMetadata
+	if err := d.DocumentMetaDataRepository.GetOne(documentMetadataUUID, &existingMetadata); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "documentMetaData not found"})
+			return
+		}
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
 	if err := d.DocumentMetaDataRepository.Update(&documentMetaData, documentMetadataUUID); err != nil {
 		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})

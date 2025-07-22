@@ -701,6 +701,13 @@ func (d *DocumentController) AcceptInvitation(c *gin.Context) {
 			return
 		}
 
+		invite.Status = model.InviteStatus(model.Accepted)
+		if err := d.InviteRepository.Update(&invite, invite.ID); err != nil {
+			log.Printf("Error: %s", err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+			return
+		}
+
 		tokenGenerator, err := jwt.NewSession()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
@@ -745,6 +752,13 @@ func (d *DocumentController) AcceptInvitation(c *gin.Context) {
 		}
 		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	invite.Status = model.InviteStatus(model.Accepted)
+	if err := d.InviteRepository.Update(&invite, invite.ID); err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
