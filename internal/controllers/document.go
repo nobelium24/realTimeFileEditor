@@ -154,18 +154,22 @@ func (d *DocumentController) GetSingleDocument(c *gin.Context) {
 		return
 	}
 
-	access, err := d.DocumentAccessRepository.HasReadAccess(userDetails.ID, documentUUID)
-	if err != nil {
-		log.Printf("Error: %s", err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching document"})
+	if !document.PublicVisibility {
+		access, err := d.DocumentAccessRepository.HasReadAccess(userDetails.ID, documentUUID)
+		if err != nil {
+			log.Printf("Error: %s", err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching document"})
+			return
+		}
+
+		if !access {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "you do not have access to this document"})
+			return
+		}
+
+		c.JSON(http.StatusCreated, gin.H{"message": "Document fetched", "document": document})
 		return
 	}
-
-	if !access {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "you do not have access to this document"})
-		return
-	}
-
 	c.JSON(http.StatusCreated, gin.H{"message": "Document fetched", "document": document})
 }
 

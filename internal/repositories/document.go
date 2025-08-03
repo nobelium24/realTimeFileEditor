@@ -37,6 +37,17 @@ func (d *DocumentRepository) GetUserDocuments(userId uuid.UUID) ([]model.Documen
 	return documents, nil
 }
 
+func (d *DocumentRepository) ToggleVisibility(id uuid.UUID) error {
+	var existingDoc model.Document
+
+	if err := d.db.First(&existingDoc, "id = ?", id).Error; err != nil {
+		return err
+	}
+	existingDoc.PublicVisibility = !existingDoc.PublicVisibility
+	existingDoc.UpdatedAt = time.Now().UTC()
+	return d.db.Save(&existingDoc).Error
+}
+
 func (d *DocumentRepository) Update(updatedDoc *model.Document, id uuid.UUID) error {
 	var existingDoc model.Document
 
@@ -44,7 +55,6 @@ func (d *DocumentRepository) Update(updatedDoc *model.Document, id uuid.UUID) er
 		return err
 	}
 
-	// Only update relevant fields
 	existingDoc.Title = updatedDoc.Title
 	existingDoc.Content = updatedDoc.Content
 	existingDoc.UpdatedAt = time.Now().UTC()

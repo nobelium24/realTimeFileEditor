@@ -2,11 +2,11 @@
 const io = require('socket.io-client');
 
 // Mock JWT for testing — replace with a real one when ready
-const MOCK_JWT = "";
+const MOCK_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAcmFtLmNvbSIsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJpc3MiOiJub2JlbGl1bTI0IiwiaWF0IjoxNzUzMTY0ODEzLCJleHAiOjE3NTMyNTEyMTN9.Q8aSgNNIHRhWuHkNXCeF3sz2R1UoSX7JEbCGD15kUbg";
 
 // Document ID to test with (replace with actual existing ID in DB)
 const DOCUMENT_ID = "45236245-348f-45e7-81fa-6432d6a34362";
-const localUrl = "http://localhost:9091/ws"
+const localUrl = "http://localhost:9091"
 
 const socket = io(`${localUrl}/ws`, {
     extraHeaders: {
@@ -22,9 +22,7 @@ socket.on("connect", () => {
     console.log("Connected to WebSocket server with ID:", socket.id);
 
     // Join the document room
-    socket.emit("join_document", {
-        documentId: DOCUMENT_ID,
-    });
+    socket.emit("join", DOCUMENT_ID);
 
     // Start emitting edits every 2 seconds
     let editCount = 1;
@@ -32,9 +30,10 @@ socket.on("connect", () => {
         const newContent = `Edit #${editCount} made at ${new Date().toISOString()}`;
         console.log("Sending edit:", newContent);
 
-        socket.emit("edit_document", {
-            documentId: DOCUMENT_ID,
-            content: newContent,
+        socket.emit("edit", {
+            Title: "Another one",
+            ID: DOCUMENT_ID,
+            Content: newContent,
         });
 
         editCount++;
