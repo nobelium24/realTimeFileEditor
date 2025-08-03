@@ -173,6 +173,53 @@ func (d *DocumentController) GetSingleDocument(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Document fetched", "document": document})
 }
 
+func (d *DocumentController) ToggleVisibility(c *gin.Context) {
+	user, exists := c.Get("user")
+	documentId := c.Param("id")
+
+	if !exists {
+		c.JSON(http.StatusForbidden, gin.H{"error": "invalid session"})
+		return
+	}
+
+	userDetails, ok := user.(model.User)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user type"})
+		return
+	}
+
+	documentUUID, err := uuid.Parse(documentId)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid id"})
+		return
+	}
+
+	var document model.Document
+	if err := d.DocumentRepository.GetOne(documentUUID, &document); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "document not found"})
+			return
+		}
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	if userDetails.ID != document.UserID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission for this action"})
+		return
+	}
+
+	if err := d.DocumentRepository.ToggleVisibility(documentUUID); err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"error": "Visibility changed"})
+}
+
 func (d *DocumentController) RevokeAccess(c *gin.Context) {
 	user, exists := c.Get("user")
 	documentAccessId := c.Param("documentAccessId")
@@ -198,16 +245,16 @@ func (d *DocumentController) RevokeAccess(c *gin.Context) {
 	var documentAccess model.DocumentAccess
 	if err := d.DocumentAccessRepository.GetOne(documentAccessUUID, &documentAccess); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "document access not found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "document access not found"})
 			return
 		}
 		log.Printf("Error: %s", err.Error())
-		c.JSON(http.StatusNotFound, gin.H{"error": "document access not found"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 
 	if documentAccess.Role == model.Creator {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "You cannot revoke access to a document created by you"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You cannot revoke access to a document created by you"})
 		return
 	}
 

@@ -76,6 +76,73 @@ paths:
         '500':
           description: Internal server error
 
+  /document/toggle-visibility/{id}:
+    get:
+      tags:
+        - Documents
+      summary: Toggle document public visibility
+      description: Toggle the public visibility of a document. Only the creator can perform this action.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Document visibility changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Visibility changed
+        '400':
+          description: Invalid document ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid id
+        '403':
+          description: Invalid session or no permission
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: You don't have permission for this action
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: document not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: internal server error
+
   /document/get-one/{documentId}:
     get:
       tags:
