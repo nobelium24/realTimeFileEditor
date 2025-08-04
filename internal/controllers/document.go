@@ -798,7 +798,7 @@ func (d *DocumentController) AcceptInvitation(c *gin.Context) {
 	var document model.Document
 	if err := d.DocumentRepository.GetOne(invite.DocumentId, &document); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "document not found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "document not found"})
 			return
 		}
 		log.Printf("Error: %s", err.Error())
@@ -837,7 +837,7 @@ func (d *DocumentController) GenerateDocPDF(c *gin.Context) {
 
 	_, ok := user.(model.User)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user type"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 
