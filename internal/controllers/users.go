@@ -321,15 +321,21 @@ func (u *UserController) Login(c *gin.Context) {
 		return
 	}
 
+	var profilePhoto string
+	if existingUser.ProfilePhoto != nil {
+		profilePhoto = existingUser.ProfilePhoto.Secure_URL
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"accessToken":  accessToken,
 		"refreshToken": refreshToken,
 		"user": gin.H{
 			"email":        existingUser.Email,
 			"name":         fmt.Sprintf("%s %s", *existingUser.FirstName, *existingUser.LastName),
-			"profilePhoto": existingUser.ProfilePhoto.Secure_URL,
+			"profilePhoto": profilePhoto,
 		},
 	})
+
 }
 
 func (u *UserController) UploadProfilePicture(c *gin.Context) {
@@ -615,4 +621,8 @@ func (u *UserController) Profile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"user": newDetails})
+}
+
+func (u *UserController) VerifyExpiredToken(c *gin.Context) {
+
 }
