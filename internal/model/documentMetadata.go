@@ -8,7 +8,7 @@ import (
 )
 
 type DocumentMetadata struct {
-	ID         uuid.UUID `gorm:"type:uuid;primaryKey"`
+	ID         uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	DocumentID uuid.UUID `gorm:"type:uuid" json:"documentId"`
 	Version    int       `gorm:"type:int" json:"version"`
 	// Cursor     *CursorPosition `json:"cursor,omitempty"`

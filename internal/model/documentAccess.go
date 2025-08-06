@@ -8,7 +8,7 @@ import (
 )
 
 type DocumentAccess struct {
-	ID             uuid.UUID `gorm:"type:uuid;primaryKey"`
+	ID             uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	CollaboratorId uuid.UUID `gorm:"type:uuid" json:"collaboratorId"`
 	DocumentId     uuid.UUID `gorm:"type:uuid" json:"documentId"`
 	Role           Role      `gorm:"type:varchar" json:"role"`

@@ -8,7 +8,7 @@ import (
 )
 
 type Invite struct {
-	ID             uuid.UUID    `gorm:"type:uuid;primaryKey"`
+	ID             uuid.UUID    `gorm:"type:uuid;primaryKey" json:"id"`
 	CollaboratorId *uuid.UUID   `gorm:"type:uuid;index;default:null" json:"collaboratorId"`
 	Email          *string      `gorm:"type:varchar(255);index;not null" json:"email"`
 	DocumentId     uuid.UUID    `gorm:"type:uuid;not null;index" json:"documentId"`

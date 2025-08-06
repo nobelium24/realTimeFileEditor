@@ -325,8 +325,9 @@ func (u *UserController) Login(c *gin.Context) {
 		"accessToken":  accessToken,
 		"refreshToken": refreshToken,
 		"user": gin.H{
-			"email": existingUser.Email,
-			"name":  fmt.Sprintf("%s %s", *existingUser.FirstName, *existingUser.LastName),
+			"email":        existingUser.Email,
+			"name":         fmt.Sprintf("%s %s", *existingUser.FirstName, *existingUser.LastName),
+			"profilePhoto": existingUser.ProfilePhoto.Secure_URL,
 		},
 	})
 }
