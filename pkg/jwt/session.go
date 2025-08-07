@@ -76,7 +76,11 @@ func (s *Session) VerifyAccessToken(tokenString string) (string, error) {
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		email := claims["sub"].(string)
+		if iss, ok := claims["iss"].(string); !ok || iss != "nobelium24" {
+			return "", fmt.Errorf("invalid issuer")
+		}
+
+		email := claims["email"].(string)
 		return email, nil
 	}
 
@@ -124,6 +128,10 @@ func (s *Session) VerifyRefreshToken(tokenString string) (string, error) {
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		if tokenType, ok := claims["token_type"].(string); !ok || tokenType != "refresh" {
 			return "", fmt.Errorf("invalid token type: expected refresh token")
+		}
+
+		if iss, ok := claims["iss"].(string); !ok || iss != "nobelium24" {
+			return "", fmt.Errorf("invalid issuer")
 		}
 
 		email, ok := claims["email"].(string)
