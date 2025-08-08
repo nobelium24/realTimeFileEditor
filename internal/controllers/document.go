@@ -123,7 +123,7 @@ func (d *DocumentController) GetUserCreatedDocuments(c *gin.Context) {
 
 func (d *DocumentController) GetSingleDocument(c *gin.Context) {
 	user, exists := c.Get("user")
-	documentId := c.Param("documentId")
+	documentId := c.Query("documentId")
 
 	if !exists {
 		c.JSON(http.StatusForbidden, gin.H{"error": "invalid session"})

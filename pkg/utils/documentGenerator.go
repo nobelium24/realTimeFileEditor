@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,6 +15,12 @@ import (
 
 type PDFService struct {
 	assetsPath string
+}
+
+type ContentNode struct {
+	Type    string        `json:"type"`
+	Text    string        `json:"text,omitempty"`
+	Content []ContentNode `json:"content,omitempty"`
 }
 
 func NewPDFService(assetsPath string) *PDFService {
@@ -67,7 +74,6 @@ func (p *PDFService) GenerateDocumentPDF(document *model.Document, m *model.Docu
 	marginRight := 15.0
 	marginBottom := 15.0
 
-	// Override if metadata is present
 	if m != nil {
 		if m.Metadata.Font != "" {
 			fontName = strings.ToLower(strings.ReplaceAll(m.Metadata.Font, " ", "")) // Normalize
@@ -97,30 +103,25 @@ func (p *PDFService) GenerateDocumentPDF(document *model.Document, m *model.Docu
 		}
 	}
 
-	// Apply margins
 	pdf.SetMargins(marginLeft, marginTop, marginRight)
 	pdf.SetAutoPageBreak(true, marginBottom)
 
-	// Register fallback font if not overridden
 	pdf.AddUTF8Font(fontName, "", fontFile)
 	pdf.SetFont(fontName, "", fontSize)
 
-	// Title
 	pdf.SetFont(fontName, "B", fontSize+2)
 	pdf.CellFormat(0, 10, document.Title, "", 1, "C", false, 0, "")
 	pdf.Ln(5)
 	pdf.SetFont(fontName, "", fontSize)
 
-	// Content (very basic word wrap)
 	if document.Content != nil {
-		lines := strings.Split(*document.Content, "\n")
-		for _, line := range lines {
-			pdf.MultiCell(0, fontSize*lineSpacing, line, "", "L", false)
-			pdf.Ln(-1)
+		var contentNodes []ContentNode
+		if err := json.Unmarshal(*document.Content, &contentNodes); err != nil {
+			return nil, fmt.Errorf("failed to parse document content: %v", err)
 		}
+		p.renderContent(pdf, contentNodes, fontSize, lineSpacing)
 	}
 
-	// Footer
 	pdf.SetFont(fontName, "I", 8)
 	pdf.SetXY(0, 280)
 	pdf.CellFormat(0, 5, fmt.Sprintf("Generated on %s", time.Now().UTC().Format("January 2, 2006")), "", 1, "C", false, 0, "")
@@ -128,4 +129,48 @@ func (p *PDFService) GenerateDocumentPDF(document *model.Document, m *model.Docu
 	var buf bytes.Buffer
 	err := pdf.Output(&buf)
 	return buf.Bytes(), err
+}
+
+func (p *PDFService) renderContent(pdf *gofpdf.Fpdf, nodes []ContentNode, fontSize, lineSpacing float64) {
+	for _, node := range nodes {
+		switch node.Type {
+		case "text":
+			pdf.MultiCell(0, fontSize*lineSpacing, node.Text, "", "L", false)
+			pdf.Ln(-1)
+		case "paragraph":
+			p.renderContent(pdf, node.Content, fontSize, lineSpacing)
+			pdf.Ln(fontSize / 2)
+		case "heading":
+			level := 1
+			if strings.HasPrefix(node.Type, "heading") {
+				level = int(node.Type[len(node.Type)-1] - '0')
+			}
+			headingSize := fontSize + float64(4-level)
+			pdf.SetFont("", "B", headingSize)
+			p.renderContent(pdf, node.Content, headingSize, lineSpacing)
+			pdf.SetFont("", "", fontSize)
+			pdf.Ln(fontSize / 2)
+		case "bulletList", "orderedList":
+			p.renderList(pdf, node.Content, fontSize, lineSpacing, node.Type == "orderedList")
+		default:
+			p.renderContent(pdf, node.Content, fontSize, lineSpacing)
+		}
+	}
+}
+
+func (p *PDFService) renderList(pdf *gofpdf.Fpdf, items []ContentNode, fontSize, lineSpacing float64, ordered bool) {
+	for i, item := range items {
+		if len(item.Content) > 0 {
+			marker := "• "
+			if ordered {
+				marker = fmt.Sprintf("%d. ", i+1)
+			}
+			pdf.CellFormat(10, fontSize*lineSpacing, marker, "", 0, "", false, 0, "")
+
+			x, y := pdf.GetXY()
+			pdf.SetXY(x+10, y)
+			p.renderContent(pdf, item.Content, fontSize, lineSpacing)
+			pdf.SetXY(x, y+fontSize*lineSpacing)
+		}
+	}
 }
