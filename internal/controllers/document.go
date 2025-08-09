@@ -827,6 +827,41 @@ func (d *DocumentController) AcceptInvitation(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "invite accepted"})
 }
 
+func (d *DocumentController) VerifyInviteToken(c *gin.Context) {
+	token := c.Query("token")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Token is required"})
+		return
+	}
+
+	var invite model.Invite
+	if err := d.InviteRepository.GetOneByToken(token, &invite); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Invitation not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	if invite.Status == model.InviteStatus(model.Accepted) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invite already accepted"})
+		return
+	}
+
+	var document model.Document
+	if err := d.DocumentRepository.GetOne(invite.DocumentId, &document); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Document not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"documentTitle": document.Title,
+		"role":          invite.Role,
+		"email":         invite.Email,
+	})
+}
+
 func (d *DocumentController) GenerateDocPDF(c *gin.Context) {
 	user, exists := c.Get("user")
 
