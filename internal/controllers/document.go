@@ -703,7 +703,7 @@ func (d *DocumentController) InviteCollaborator(c *gin.Context) {
 		return
 	}
 
-	inviteUrl := fmt.Sprintf("%s/invite%s", envVars.FE_ROOT_URL, token)
+	inviteUrl := fmt.Sprintf("%s/invite/%s", envVars.FE_ROOT_URL, token)
 	err = handlers.SendMail(payload.Email, "invite", "Invite Mail", handlers.Invite{
 		InviteLink:    inviteUrl,
 		DocumentTitle: document.Title,
