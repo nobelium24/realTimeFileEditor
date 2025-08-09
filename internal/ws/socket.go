@@ -7,6 +7,7 @@ import (
 	"realTimeEditor/internal/model"
 	"realTimeEditor/internal/repositories"
 	"realTimeEditor/pkg/jwt"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -44,9 +45,37 @@ func (sh *SocketHandler) RegisterEvents(server *socketio.Server) {
 		if s == nil {
 			return errors.New("nil connection")
 		}
-		token := s.RemoteHeader().Get("Authorization")
+
+		u := s.URL()
+		token := u.Query().Get("token")
+
+		// 2. Try headers (works for polling)
 		if token == "" {
-			s.Emit("Authentication required")
+			token = s.RemoteHeader().Get("Authorization")
+			// Handle "Bearer " prefix
+			token = strings.TrimPrefix(token, "Bearer ")
+		}
+
+		// 3. Try WebSocket subprotocol headers (fallback)
+		if token == "" {
+			// Check Sec-WebSocket-Protocol header
+			if proto := s.RemoteHeader().Get("Sec-WebSocket-Protocol"); proto != "" {
+				// May contain "Bearer, token" or similar
+				if strings.Contains(proto, "bearer") {
+					parts := strings.Split(proto, ",")
+					for _, part := range parts {
+						part = strings.TrimSpace(part)
+						if strings.HasPrefix(strings.ToLower(part), "bearer") {
+							token = strings.TrimSpace(strings.SplitN(part, " ", 2)[1])
+							break
+						}
+					}
+				}
+			}
+		}
+
+		if token == "" {
+			s.Emit("error", "Authentication required")
 			return errors.New("authentication required")
 		}
 
@@ -96,7 +125,7 @@ func (sh *SocketHandler) RegisterEvents(server *socketio.Server) {
 		log.Printf("ctx: %s", ctx)
 		log.Printf("data: %s", data)
 
-		docId, ok := data["ID"].(string)
+		docId, ok := data["id"].(string)
 		if !ok || docId == "" {
 			s.Emit("error", "Invalid document ID")
 			return

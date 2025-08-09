@@ -30,7 +30,7 @@ func (d *DocumentAccessRepository) GetDocumentAccesses(documentId uuid.UUID) ([]
 
 	err := d.db.
 		Preload("User", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id", "first_name", "last_name")
+			return db.Select("id", "first_name", "last_name", "email")
 		}).
 		Where("document_id = ?", documentId).
 		Find(&documentAccesses).Error

@@ -841,7 +841,7 @@ func (d *DocumentController) GenerateDocPDF(c *gin.Context) {
 		return
 	}
 
-	documentId := c.Param("documentId")
+	documentId := c.Query("documentId")
 	documentUUID, err := uuid.Parse(documentId)
 	if err != nil {
 		log.Printf("Error: %s", err)

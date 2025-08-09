@@ -13,7 +13,7 @@ func DocumentMetadataRouter(g *gin.Engine, d *controllers.DocumentMetadataContro
 	documentMetadataGroup.Use(m.UserAuth(s))
 	{
 		documentMetadataGroup.POST("/create", d.Create)
-		documentMetadataGroup.GET("/get-one", d.GetDocumentMetadata)
+		documentMetadataGroup.GET("/get-one/:documentId", d.GetDocumentMetadata)
 		documentMetadataGroup.PATCH("/update", d.Update)
 		documentMetadataGroup.DELETE("/delete", d.Delete)
 	}

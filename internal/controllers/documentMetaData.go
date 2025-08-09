@@ -94,7 +94,7 @@ func (d *DocumentMetadataController) GetDocumentMetadata(c *gin.Context) {
 
 func (d *DocumentMetadataController) Update(c *gin.Context) {
 	user, exists := c.Get("user")
-	documentMetadataId := c.Param("documentMetadataId")
+	documentMetadataId := c.Query("documentMetadataId")
 
 	if !exists {
 		c.JSON(http.StatusForbidden, gin.H{"error": "invalid session"})
@@ -143,7 +143,7 @@ func (d *DocumentMetadataController) Update(c *gin.Context) {
 
 func (d *DocumentMetadataController) Delete(c *gin.Context) {
 	user, exists := c.Get("user")
-	documentMetadataId := c.Param("documentMetadataId")
+	documentMetadataId := c.Query("documentMetadataId")
 
 	if !exists {
 		c.JSON(http.StatusForbidden, gin.H{"error": "invalid session"})

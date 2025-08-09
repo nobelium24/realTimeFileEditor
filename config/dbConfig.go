@@ -39,7 +39,7 @@ func ConnectToDB() {
 	}
 
 	if err := db.AutoMigrate(
-		&model.User{}, &model.Document{}, &model.DocumentAccess{},
+		&model.User{}, &model.Document{}, &model.DocumentAccess{}, &model.Invite{},
 		&model.ForgotPassword{}, &model.DocumentMetadata{}, &model.DocumentMedia{},
 	); err != nil {
 		panic(fmt.Sprintf("Error during migration: %v", err))
