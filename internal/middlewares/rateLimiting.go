@@ -7,7 +7,6 @@ import (
 	memstore "github.com/ulule/limiter/v3/drivers/store/memory"
 )
 
-// Rate limiter middleware (5 requests per minute for example)
 func RateLimiterMiddleware() gin.HandlerFunc {
 	rate, _ := limiter.NewRateFromFormatted("50-M")
 	store := memstore.NewStore()

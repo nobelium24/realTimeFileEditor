@@ -731,17 +731,23 @@ func (d *DocumentController) AcceptInvitation(c *gin.Context) {
 
 	var invite model.Invite
 	if err := d.InviteRepository.GetOneByToken(token, &invite); err != nil {
+		log.Printf("Error: %s", err.Error())
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"message": "Invitation not found"})
+			return
 		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
 	}
 
 	var user model.User
-	if err := d.UserRepository.GetByEmail(&user, *invite.Email); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	err = d.UserRepository.GetByEmail(&user, *invite.Email)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log.Printf("Error retrieving user details: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
-	} else {
+	}
+	if err == nil {
 		documentAccess := model.DocumentAccess{
 			CollaboratorId: user.ID,
 			DocumentId:     invite.DocumentId,
@@ -781,9 +787,9 @@ func (d *DocumentController) AcceptInvitation(c *gin.Context) {
 			"message":      "Account setup complete",
 			"accessToken":  accessToken,
 			"refreshToken": refreshToken,
-			"redirectTo":   fmt.Sprintf("/get-document/%s", invite.DocumentId.String()),
+			"redirectTo":   fmt.Sprintf("/documents/%s", invite.DocumentId.String()),
 		})
-
+		return
 	}
 
 	newUser := model.User{

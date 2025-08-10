@@ -46,7 +46,7 @@ func CreateRouter(container *router.RouterContainer) *gin.Engine {
 	r.Use(middlewares.SecureHeadersMiddleware())
 	r.Use(middlewares.CSPMiddleware())
 	r.Use(func(c *gin.Context) {
-		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 100<<20) // Limit body size to 100MB
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 100<<20)
 		c.Next()
 	})
 

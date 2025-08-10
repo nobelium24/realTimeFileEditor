@@ -29,6 +29,6 @@ func DocumentRouter(g *gin.Engine, d *controllers.DocumentController, m *middlew
 	docGroup := g.Group("/invite")
 	{
 		docGroup.GET("/verify", d.VerifyInviteToken)
-		docGroup.GET("/accept/:token", d.AcceptInvitation)
+		docGroup.POST("/accept/:token", d.AcceptInvitation)
 	}
 }
